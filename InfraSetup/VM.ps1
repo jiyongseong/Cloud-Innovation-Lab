@@ -29,7 +29,7 @@
 }
 
 #region creating VM(s)
-function Create-MyVM($fileUrl, $rgName, $region, $wb)
+function Create-MyVM($rgName, $region, $wb)
 {
     $ws = $wb.Worksheets["VM"]
         

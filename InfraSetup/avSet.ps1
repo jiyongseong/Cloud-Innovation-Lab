@@ -1,5 +1,5 @@
 ﻿#region AV Set
-function Create-AVSet($fileUrl, $rgName, $region, $wb)
+function Create-AVSet($rgName, $region, $wb)
 {
     $ws = $wb.Worksheets["Availability Set"]
         

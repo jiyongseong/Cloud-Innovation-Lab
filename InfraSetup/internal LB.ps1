@@ -31,7 +31,7 @@ $beName = "Redhat-BE"
 $beaddresspool= New-AzureRmLoadBalancerBackendAddressPoolConfig -Name $beName
 
 $healthProbeName = "Redhat-Probe"
-$healthProbe = New-AzureRmLoadBalancerProbeConfig -Name $healthProbeName -Protocol tcp -Port 80 -IntervalInSeconds 15 -ProbeCount 2
+$healthProbe = New-AzureRmLoadBalancerProbeConfig -Name $healthProbeName -Protocol tcp -Port 80 -IntervalInSeconds 5 -ProbeCount 2
 
 $lbRuleName = "Redhat-LBRule"
 $lbrule = New-AzureRmLoadBalancerRuleConfig -Name $lbRuleName -FrontendIpConfiguration $frontendIP -BackendAddressPool $beAddressPool -Probe $healthProbe -Protocol Tcp -FrontendPort 80 -BackendPort 80

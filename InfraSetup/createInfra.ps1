@@ -33,38 +33,40 @@ $fileUrl =  $filePath+"\"+$file
 . .\virtualNetwork.ps1
     
     #creating Virtual Network and subnets
-    Create-Vnet $fileUrl $resourceGroup $location $wb
+    Create-Vnet $resourceGroup $location $wb
 
     #creating Public Ip Address
-    Create-Pip $fileUrl $resourceGroup $location $wb
+    Create-Pip $resourceGroup $location $wb
 #endregion
 
 #region network security group(s)
 . .\networkSecurityGroup.ps1
     
     #creating network security group(s)
-    Create-NSG $fileUrl $resourceGroup $location $wb
+    Create-NSG $resourceGroup $location $wb
 #endregion
 
 #region availability set(s)
 . .\avSet.ps1
     
     #creating availability set(s)
-    Create-AVSet $fileUrl $resourceGroup $location $wb
+    Create-AVSet $resourceGroup $location $wb
 #endregion
 
 #region virtual machine(s)
 . .\VM.ps1
     
     #creating virtual machine(s)
-    Create-MyVM $fileUrl $resourceGroup $location $wb
+    Create-MyVM $resourceGroup $location $wb
 #endregion
 
 #region House-keeping
 $wb.Close()
+Remove-Variable wb
+
 $excel.Quit()
-[System.Runtime.Interopservices.Marshal]::ReleaseComObject($wb) | Out-Null
-[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) 
 [System.GC]::Collect()
 [System.GC]::WaitForPendingFinalizers()
+Remove-Variable excel
 #endregion

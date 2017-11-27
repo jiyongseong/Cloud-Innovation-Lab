@@ -1,6 +1,6 @@
 ﻿#region virtual Network
 
-function Create-Vnet($fileUrl, $rgName, $region, $wb)
+function Create-Vnet($rgName, $region, $wb)
 {
     $ws = $wb.Worksheets["Virtual Network"]
 
@@ -36,10 +36,8 @@ function Create-Vnet($fileUrl, $rgName, $region, $wb)
 #endregion
 
 #region public ip address
-function Create-Pip($fileUrl, $rgName, $region)
+function Create-Pip($rgName, $region)
 {
-    $wb = Get-Info($fileUrl)
-
     $ws = $wb.Worksheets["Virtual Network"]
     
     Write-Host "Creating Public Ipaddress." -ForegroundColor Red -BackgroundColor Yellow

@@ -1,5 +1,5 @@
 ﻿#region network security group
-function Create-NSG($fileUrl, $rgName, $region, $wb)
+function Create-NSG($rgName, $region, $wb)
 {
     $ws = $wb.Worksheets["Network Security Group"]
 
