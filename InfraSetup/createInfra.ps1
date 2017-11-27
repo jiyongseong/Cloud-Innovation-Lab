@@ -4,8 +4,17 @@ Login-AzureRmAccount
 Select-AzureRmSubscription -Subscription "Azure Demo"
 #endregion
 
-$filePath = "C:\Users\jyseong\OneDrive\Case\FY18 Cxs\Samsung SDS\Docs\InfraSetup"
+$filePath = "C:\Users\jyseong\source\repos\Cloud-Innovation-Lab\InfraSetup"
 cd $filePath
+
+#region Excel
+$excel = New-Object -ComObject excel.application
+
+$excel.Visible = $False
+$excel.DisplayAlerts = $False
+
+$wb=$excel.workbooks.open($fileUrl,$null,$true)
+#endregion
 
 #region resource group, location
 $location = "korea central"
@@ -24,29 +33,38 @@ $fileUrl =  $filePath+"\"+$file
 . .\virtualNetwork.ps1
     
     #creating Virtual Network and subnets
-    Create-Vnet $fileUrl $resourceGroup $location
+    Create-Vnet $fileUrl $resourceGroup $location $wb
 
     #creating Public Ip Address
-    Create-Pip $fileUrl $resourceGroup $location
+    Create-Pip $fileUrl $resourceGroup $location $wb
 #endregion
 
 #region network security group(s)
 . .\networkSecurityGroup.ps1
     
     #creating network security group(s)
-    Create-NSG $fileUrl $resourceGroup $location
+    Create-NSG $fileUrl $resourceGroup $location $wb
 #endregion
 
 #region availability set(s)
 . .\avSet.ps1
     
     #creating availability set(s)
-    Create-AVSet $fileUrl $resourceGroup $location
+    Create-AVSet $fileUrl $resourceGroup $location $wb
 #endregion
 
 #region virtual machine(s)
 . .\VM.ps1
     
     #creating virtual machine(s)
-    Create-MyVM $fileUrl $resourceGroup $location
+    Create-MyVM $fileUrl $resourceGroup $location $wb
+#endregion
+
+#region House-keeping
+$wb.Close()
+$excel.Quit()
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($wb) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+[System.GC]::Collect()
+[System.GC]::WaitForPendingFinalizers()
 #endregion

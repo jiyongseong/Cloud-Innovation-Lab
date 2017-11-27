@@ -1,25 +1,6 @@
-﻿
-#region opening file
-function Get-Info($fileUrl)
+﻿#region network security group
+function Create-NSG($fileUrl, $rgName, $region, $wb)
 {
-    $excel = New-Object -ComObject excel.application
-
-    $excel.Visible = $False
-    $excel.DisplayAlerts = $False
-
-    $wb=$excel.workbooks.open($fileUrl,$null,$true)
-
-    return $wb
-}
-#endregion
-
-#region network security group
-
-#region network security group
-function Create-NSG($fileUrl, $rgName, $region)
-{
-    $wb = Get-Info($fileUrl)
-
     $ws = $wb.Worksheets["Network Security Group"]
 
     $nsgRuleObjects = [System.Collections.ArrayList]@()

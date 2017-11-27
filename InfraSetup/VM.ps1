@@ -1,20 +1,4 @@
-﻿
-#region opening file
-function Get-Info($fileUrl)
-{
-    $excel = New-Object -ComObject excel.application
-
-    $excel.Visible = $False
-    $excel.DisplayAlerts = $False
-
-    $wb=$excel.workbooks.open($fileUrl,$null,$true)
-
-    return $wb
-}
-#endregion
-
-
-function create-VM($ResourceGroupName, $Region, $Name, $Size, $AvailabilitySetId, $Credential, $PublisherName, $Offer, $Skus, $VMNetworkInterfaceID, $numOfDisk, $diskSize, $diskStorageAccountType, $caching)
+﻿function create-VM($ResourceGroupName, $Region, $Name, $Size, $AvailabilitySetId, $Credential, $PublisherName, $Offer, $Skus, $VMNetworkInterfaceID, $numOfDisk, $diskSize, $diskStorageAccountType, $caching)
 {
     Write-Host "Creating VM - $name....." -BackgroundColor Yellow -ForegroundColor Red
 
@@ -45,10 +29,8 @@ function create-VM($ResourceGroupName, $Region, $Name, $Size, $AvailabilitySetId
 }
 
 #region creating VM(s)
-function Create-MyVM($fileUrl, $rgName, $region)
+function Create-MyVM($fileUrl, $rgName, $region, $wb)
 {
-    $wb = Get-Info($fileUrl)
-
     $ws = $wb.Worksheets["VM"]
         
     Write-Host "Creating Virtual Machines." -ForegroundColor Red -BackgroundColor Yellow

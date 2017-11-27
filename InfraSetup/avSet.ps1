@@ -1,23 +1,6 @@
-﻿
-#region opening file
-function Get-Info($fileUrl)
+﻿#region AV Set
+function Create-AVSet($fileUrl, $rgName, $region, $wb)
 {
-    $excel = New-Object -ComObject excel.application
-
-    $excel.Visible = $False
-    $excel.DisplayAlerts = $False
-
-    $wb=$excel.workbooks.open($fileUrl,$null,$true)
-
-    return $wb
-}
-#endregion
-
-#region AV Set
-function Create-AVSet($fileUrl, $rgName, $region)
-{
-    $wb = Get-Info($fileUrl)
-
     $ws = $wb.Worksheets["Availability Set"]
         
     Write-Host "Creating Availability Sets." -ForegroundColor Red -BackgroundColor Yellow

@@ -1,24 +1,7 @@
-﻿
-#region opening file
-function Get-Info($fileUrl)
+﻿#region virtual Network
+
+function Create-Vnet($fileUrl, $rgName, $region, $wb)
 {
-    $excel = New-Object -ComObject excel.application
-
-    $excel.Visible = $False
-    $excel.DisplayAlerts = $False
-
-    $wb=$excel.workbooks.open($fileUrl,$null,$true)
-
-    return $wb
-}
-#endregion
-
-#region virtual Network
-
-function Create-Vnet($fileUrl, $rgName, $region)
-{
-    $wb = Get-Info($fileUrl)
-
     $ws = $wb.Worksheets["Virtual Network"]
 
     $vNetname = $ws.Cells.Item(2, 1).Value2
