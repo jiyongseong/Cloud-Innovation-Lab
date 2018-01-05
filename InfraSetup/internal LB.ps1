@@ -25,7 +25,7 @@ $subnet = $vNet.Subnets | Where-Object {$_.Name -eq $subnetName}
 $feName = "Redhat-FE"
 $feIpAddress = "10.0.3.100"
 
-$frontendIP = New-AzureRmLoadBalancerFrontendIpConfig -Name $feName -PrivateIpAddress $ilbIpAddress -SubnetId $subnet.Id
+$frontendIP = New-AzureRmLoadBalancerFrontendIpConfig -Name $feName -PrivateIpAddress $feIpAddress -SubnetId $subnet.Id
 
 $beName = "Redhat-BE"
 $beaddresspool= New-AzureRmLoadBalancerBackendAddressPoolConfig -Name $beName
