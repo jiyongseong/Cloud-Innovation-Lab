@@ -41,10 +41,10 @@
 ## 사용 방법
 전체 스크립트를 다운로드하여, Deploy-resource-template.ps1 파일의 관련 정보 수정 후 실행
 수정할 정보
-    * $path : 스크립트를 다운로드한 위치
-    * $storageAccountForDeploy : 스크립트들을 배포할 storage account 이름
-    * $resourceGroupName : 리소스 그룹 이름
-    * $location : 배포할 지역
+* $path : 스크립트를 다운로드한 위치
+* $storageAccountForDeploy : 스크립트들을 배포할 storage account 이름
+* $resourceGroupName : 리소스 그룹 이름
+* $location : 배포할 지역
 
 ## To Do 목록
 * AlwaysOn CopyIndex + Reference 오류 : "the resource template cannot reference itself"
