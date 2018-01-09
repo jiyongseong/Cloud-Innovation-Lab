@@ -1,0 +1,82 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "BDCVMName": { "type": "string" },
+
+    "BDCConfigurationModulesURL": { "type": "string" },
+    "BDCConfigurationFunction": { "type": "string" },
+
+    "PDCVMIP": { "type": "string" },
+    "BDCVMIP": { "type": "string" },
+
+    "DomainName": { "type": "string" },
+
+    "AdminUsername": { "type": "string" },
+    "AdminPassword": { "type": "string" },
+
+    "DNSTemplateUri": { "type": "string" },
+
+    "VirtualNetworkName": { "type": "string" },
+    "VirtualNetworkAddressRange": { "type": "string" },
+
+    "Subnets": { "type": "array" }
+  },
+  "variables": {
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('BDCVMName'),'/ConfigureBDC')]",
+      "apiVersion": "2017-12-01",
+      "location": "[resourceGroup().location]",
+      "tags": { "displayName": "Configure BDC" },
+      "properties": {
+        "publisher": "Microsoft.Powershell",
+        "type": "DSC",
+        "typeHandlerVersion": "2.21",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "modulesURL": "[parameters('BDCConfigurationModulesURL')]",
+          "configurationFunction": "[parameters('BDCConfigurationFunction')]",
+          "properties": {
+            "DNSServer": "[parameters('PDCVMIP')]",
+            "domainName": "[parameters('DomainName')]",
+            "adminCreds": {
+              "userName": "[parameters('AdminUsername')]",
+              "password": "privateSettingsRef:adminPassword"
+            }
+          }
+        },
+        "protectedSettings": {
+          "items": {
+            "adminPassword": "[parameters('AdminPassword')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "UpdateVNetDNS2",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('BDCVMName'),'/extensions/ConfigureBDC')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[parameters('DNSTemplateUri')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "VirtualNetworkName": { "value": "[parameters('virtualNetworkName')]" },
+          "VirtualNetworkAddressRange": { "value": "[parameters('virtualNetworkAddressRange')]" },
+          "Subnets": { "value": "[parameters('Subnets')]" },
+          "DNSServerAddress": { "value": [ "[parameters('PDCVMIP')]", "[parameters('BDCVMIP')]" ] }
+        }
+      }
+    }
+  ],
+  "outputs": {
+  }
+}

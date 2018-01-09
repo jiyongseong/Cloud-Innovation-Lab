@@ -5,7 +5,7 @@
 * Domain Controller VMs : 2대, Windows Server 2016 Data Center
 * SQL Server VMs : 2대, SQL Server 2017 Enterprise Edition
 * Jumpbox VM : 1대
-* Diagnostics용 Storage account for 
+* Diagnostics용 Storage account 
 * Cloud witness용 Storage account
 
 ![](https://jyseongfileshare.blob.core.windows.net/images/CIL-AOAG-services.png)
@@ -37,3 +37,11 @@
     * Windows Failover Cluster 및 SQL Server AlwaysOn Cluster 관련 정보
 * DC DSC Module Variables, SQL DSC Module Variables
     * DC 구성, Failover Cluster / SQL Server AlwaysOn 구성 파일 및 함수 이름 정보
+
+## 사용 방법
+전체 스크립트를 다운로드하여, Deploy-resource-template.ps1 파일의 관련 정보 수정 후 실행
+
+## To Do 목록
+* AlwaysOn CopyIndex + Reference 오류 : "the resource template cannot reference itself"
+    * CopyIndex의 Serial Mode로 설정한 경우에 발생
+    * parallel mode로 하는 경우, SQL2VM에서 AlwaysOn cluster를 찾지 못하는 오류 발생

@@ -1,0 +1,77 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "VirtualNetworkName": { "type": "string" },
+    "VirtualNetworkAddressRange": { "type": "string" },
+
+    "Subnets": { "type": "array" },
+
+    "DcAvailabilitySetName": { "type": "string" },
+    "SqlAvailabilitySetName": { "type": "string" },
+
+    "DiagnosticsStorageAccountName": { "type": "string" },
+    "StorageAccountType": { "type": "string" },
+
+    "PublicIPAddressName": { "type": "string" }
+  },
+    "variables": {},
+  "resources": [
+    {
+      "name": "[parameters('DiagnosticsStorageAccountName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2017-10-01",
+      "location": "[resourceGroup().location]",
+      "sku": { "name": "[parameters('StorageAccountType')]" },
+      "kind": "Storage",
+      "tags": { "displayName": "Storage Account for Diagnostics" }
+    },
+    {
+      "name": "[parameters('PublicIPAddressName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2017-10-01",
+      "location": "[resourceGroup().location]",
+      "properties": { "publicIPAllocationMethod": "Dynamic" },
+      "tags": { "displayName": "PIP for Jumpbox" }
+    },
+    {
+      "name": "[parameters('DcAvailabilitySetName')]",
+      "type": "Microsoft.Compute/availabilitySets",
+      "apiVersion": "2017-12-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "PlatformUpdateDomainCount": "3",
+        "PlatformFaultDomainCount": "2"
+      },
+      "sku": { "name": "Aligned" },
+      "tags": { "displayName": "AvailabiltySet for DC" }
+    },
+    {
+      "name": "[parameters('SqlAvailabilitySetName')]",
+      "type": "Microsoft.Compute/availabilitySets",
+      "apiVersion": "2017-12-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "PlatformUpdateDomainCount": "3",
+        "PlatformFaultDomainCount": "2"
+      },
+      "sku": { "name": "Aligned" },
+      "tags": { "displayName": "AvailabiltySet for SQL Server" }
+    },
+    {
+      "name": "[parameters('VirtualNetworkName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-11-01",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('VirtualNetworkAddressRange')]"
+          ]
+        },
+        "subnets": "[parameters('Subnets')]"
+      },
+      "tags": { "displayName": "Virtual Network" }
+    }
+  ]
+  }

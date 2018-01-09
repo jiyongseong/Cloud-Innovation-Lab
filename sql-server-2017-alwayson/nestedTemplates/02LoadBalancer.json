@@ -1,0 +1,87 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "VirtualNetworkName": { "type": "string" },
+    "SqlSubnetName": { "type": "string" },
+
+    "LBName": { "type": "string" },
+    "LBFEName": { "type": "string" },
+    "LBFEIpAddress": { "type": "string" },
+
+    "LBBEName": { "type": "string" },
+    "LBRuleName": { "type": "string" },
+
+    "LBProbeName": { "type": "string" },
+
+    "LBID": { "type": "string" },
+    "LBFEConfigID": { "type": "string" },
+    "LBBEAddressPoolID": { "type": "string" },
+    "LBProbeID": { "type": "string" },
+
+    "VnetID": { "type": "string" },
+    "SqlSubnetID": { "type": "string" }
+  },
+  "variables": {},
+  "resources": [
+    {
+      "name": "[parameters('LBName')]",
+      "type": "Microsoft.Network/loadBalancers",
+      "apiVersion": "2017-08-01",
+      "location": "[resourceGroup().location]",
+      "tags": { "displayName": "Internal Load Balancer" },
+      "properties": {
+        "frontendIPConfigurations": [
+          {
+            "name": "[parameters('LBFEName')]",
+            "properties": {
+              "privateIPAddress": "[parameters('LBFEIpAddress')]",
+              "privateIPAllocationMethod": "Static",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              }
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "[parameters('LBBEName')]"
+          }
+        ],
+        "loadBalancingRules": [
+          {
+            "name": "[parameters('LBRuleName')]",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[parameters('LBFEConfigID')]"
+              },
+              "backendAddressPool": {
+                "id": "[parameters('LBBEAddressPoolID')]"
+              },
+              "probe": {
+                "id": "[parameters('LBProbeID')]"
+              },
+              "frontendPort": 1433,
+              "backendPort": 1433,
+              "enableFloatingIP": true,
+              "idleTimeoutInMinutes": 4,
+              "protocol": "Tcp",
+              "loadDistribution": "Default"
+            }
+          }
+        ],
+        "probes": [
+          {
+            "name": "[parameters('LBProbeName')]",
+            "properties": {
+              "protocol": "Tcp",
+              "port": 59999,
+              "intervalInSeconds": 5,
+              "numberOfProbes": 2
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,403 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+      }
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated."
+      },
+      "defaultValue": ""
+    },
+    "AdminUsername": {"type": "string", "defaultValue": "labuser"},
+    "AdminPassword": { "type": "securestring" },
+    "SqlServiceUserName": { "type": "string" , "defaultValue": "sqlsvc"},
+    "SqlServiceUserPassword": { "type": "securestring" },
+    "SqlAuthenticationLogin": { "type": "string" , "defaultValue": "sqladmin"},
+    "SqlAuthenticationPassword": { "type": "securestring" }
+  },
+  "variables": {
+
+    "-----Nested Templates Path Variables-----": "",
+    "BaseTemplateUri": "[concat(parameters('_artifactsLocation'), '/', 'nestedTemplates')]",
+    "NetworkTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '01Networks.json')]",
+    "LBTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '02LoadBalancer.json')]",
+    "NicTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '03NICs.json')]",
+    "VMsTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '04VirtualMachines.json')]",
+    "BDCTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '05BackupDomainController.json')]",
+    "SQLAlwaysOnTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '07SQLAlwaysOn.json')]",
+    "DNSTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '00UpdateDNSServers.json')]",
+
+    "-----Networks Variables-----": "",
+    "VirtualNetworkName": "SQLAOAG-VNET",
+    "VirtualNetworkAddressRange": "10.0.0.0/16",
+
+    "SubnetNames": {
+      "DcSubnetName": "Infra-Subnet",
+      "SqlSubnetName": "SQL-Subnet",
+      "JumpboxSubnetName": "jumpbox-Subnet"
+    },
+    "SubnetIPAddresses": {
+      "DcSubnetIPAddress": "10.0.1.0/24",
+      "SqlSubnetIPAddress": "10.0.9.0/24",
+      "JumpboxSubnetIPAddress": "10.0.0.0/24"
+    },
+    "Subnets": [
+      {
+        "name": "[variables('SubnetNames').DcSubnetName]",
+        "properties": {"addressPrefix": "[variables('SubnetIPAddresses').DcSubnetIPAddress]"}
+      },
+      {
+        "name": "[variables('SubnetNames').SqlSubnetName]",
+        "properties": {"addressPrefix": "[variables('SubnetIPAddresses').SqlSubnetIPAddress]"}
+      },
+      {
+        "name": "[variables('SubnetNames').JumpboxSubnetName]",
+        "properties": {"addressPrefix": "[variables('SubnetIPAddresses').JumpboxSubnetIPAddress]"}
+      }
+    ],
+
+    "VnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
+    "DcSubnetID": "[concat(variables('VnetID'),'/subnets/',variables('SubnetNames').DcSubnetName)]",
+    "SqlSubnetID": "[concat(variables('VnetID'),'/subnets/',variables('SubnetNames').SqlSubnetName)]",
+    "JumpboxSubnetID": "[concat(variables('VnetID'),'/subnets/',variables('SubnetNames').JumpboxSubnetName)]",
+
+    "AvailabilitySet": {
+      "dcAvSetName": "DC-AvailabiltySet",
+      "sqlAvSetName": "SQL-AvailabiltySet"
+    },
+
+    "PublicIPAddressName": "Jumpbox-PIP",
+
+    "DiagnosticsStorageAccountName": "[concat('diag', uniqueString(resourceGroup().id))]",
+    "WitnessStorageAccountName": "[concat('witness', uniqueString(resourceGroup().id))]",
+    "StorageAccountType": "Standard_LRS",
+
+    "-----Load Balancer Variables-----": "",
+    "LBName": "SQL-ILB",
+    "LBFEName": "SQL-FE",
+    "LBFEIpAddress": "10.0.9.101",
+
+    "LBBEName": "SQL-BE",
+    "LBRuleName": "SQL-LBRule",
+
+    "LBProbeName": "SQL-Probe",
+
+    "LBID": "[resourceId('Microsoft.Network/loadBalancers',variables('LBName'))]",
+    "LBFEConfigID": "[concat(variables('LBID'),'/frontendIPConfigurations/',variables('LBFEName'))]",
+    "LBBEAddressPoolID": "[concat(variables('LBID'),'/backendAddressPools/',variables('LBBEName'))]",
+    "LBProbeID": "[concat(variables('LBID'),'/probes/',variables('LBProbeName'))]",
+
+    "-----VM Variables-----": "",
+    "VMNames": {
+      "PDCName": "DCVM-01",
+      "BDCName": "DCVM-02",
+      "SQL1Name": "SQLVM-01",
+      "SQL2Name": "SQLVM-02",
+      "SQLNamePrefix": "SQLVM",
+      "JumboxName": "JumpboxVM"
+    },
+    "PrivateIPs": {
+      "PDCIP": "10.0.1.4",
+      "BDCIP": "10.0.1.5",
+      "SQL1IP": "10.0.9.4",
+      "SQL2IP": "10.0.9.5"
+    },
+
+    "NICs": {
+      "PDCNicName": "[concat(variables('VMNames').PDCName, '-NIC')]",
+      "BDCNicName": "[concat(variables('VMNames').BDCName, '-NIC')]",
+      "SQL1NicName": "[concat(variables('VMNames').SQL1Name, '-NIC')]",
+      "SQL2NicName": "[concat(variables('VMNames').SQL2Name, '-NIC')]",
+      "JumpboxNicName": "[concat(variables('VMNames').JumboxName, '-NIC')]"
+    },
+
+    "-----DC VMs Variables-----": "",
+    "DomainName": "yourdomain.com",
+    "DCVMSize": "Standard_D2_v2_Promo",
+    "DcImagePublisher": "MicrosoftWindowsServer",
+    "DcImageOffer": "WindowsServer",
+    "DcImageSKU": "2016-Datacenter",
+
+    "-----SQL VMs Variables-----": "",
+    "SQLVMSize": "Standard_DS2_v2",
+    "SqlImagePublisher": "MicrosoftSqlServer",
+    "SqlImageOffer": "SQL2017-WS2016",
+    "SqlImageSku": "Enterprise",
+
+    "-----Cluster Variables-----": "",
+    "ClusterName": "SQLAOAG",
+    "ClusterOwnerNode": "SQLVM-01",
+    "ClusterIP": "10.0.9.100",
+
+    "SQLServerVirtualName": "vSQL",
+    "AvailabilityGroupName": "AG1",
+
+    "-----DC DSC Module Variables-----": "",
+    "PDCConfigurationModulesURL": "[concat(parameters('_artifactsLocation'),'/DSC/CreateADPDC.zip', parameters('_artifactsLocationSasToken'))]",
+    "PDCConfigurationFunction": "CreateADPDC.ps1\\CreateADPDC",
+    "BDCConfigurationModulesURL": "[concat(parameters('_artifactsLocation'),'/DSC/CreateADBDC.zip', parameters('_artifactsLocationSasToken'))]",
+    "BDCConfigurationFunction": "CreateADBDC.ps1\\CreateADBDC",
+
+    "-----SQL DSC Module Variables-----": "",
+    "SQLConfigurationModulesURL": "[concat(parameters('_artifactsLocation'),'/DSC/CreateSQLServerCluster.zip', parameters('_artifactsLocationSasToken'))]",
+    "SQLConfigurationFunction": "CreateSQLServerCluster.ps1\\CreateSQLServerCluster"
+
+  },
+  "resources": [
+    {
+      "name": "NetworkResources",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Create Virtual Network, Availability Sets, PIP",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('NetworkTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+
+          "VirtualNetworkName": { "value": "[variables('VirtualNetworkName')]" },
+          "VirtualNetworkAddressRange": { "value": "[variables('VirtualNetworkAddressRange')]" },
+
+          "Subnets": { "value": "[variables('Subnets')]" },
+
+          "DcAvailabilitySetName": { "value": "[variables('AvailabilitySet').dcAvSetName]" },
+          "SqlAvailabilitySetName": { "value": "[variables('AvailabilitySet').sqlAvSetName]" },
+
+          "DiagnosticsStorageAccountName": { "value": "[variables('DiagnosticsStorageAccountName')]" },
+          "StorageAccountType": { "value": "[variables('StorageAccountType')]" },
+
+          "PublicIPAddressName": { "value": "[variables('PublicIPAddressName')]" }
+
+        }
+      }
+    },
+    {
+      "name": "LoadBalancers",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Create Load Balancers for SQL",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/NetworkResources"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('LBTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "VirtualNetworkName": { "value": "[variables('VirtualNetworkName')]" },
+          "SqlSubnetName": { "value": "[variables('SubnetNames').SqlSubnetName]" },
+
+          "LBName": { "value": "[variables('LBName')]" },
+          "LBFEName": { "value": "[variables('LBFEName')]" },
+          "LBFEIpAddress": { "value": "[variables('LBFEIpAddress')]" },
+
+          "LBBEName": { "value": "[variables('LBBEName')]" },
+          "LBRuleName": { "value": "[variables('LBRuleName')]" },
+
+          "LBProbeName": { "value": "[variables('LBProbeName')]" },
+
+          "LBID": { "value": "[variables('LBID')]" },
+          "LBFEConfigID": { "value": "[variables('LBFEConfigID')]" },
+          "LBBEAddressPoolID": { "value": "[variables('LBBEAddressPoolID')]" },
+          "LBProbeID": { "value": "[variables('LBProbeID')]" },
+
+          "VnetID": { "value": "[variables('VnetID')]" },
+          "SqlSubnetID": { "value": "[variables('SqlSubnetID')]" }
+        }
+      }
+    },
+    {
+      "name": "Nics",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Create Load Balancers for SQL",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/LoadBalancers"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('NicTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "PDCNicName": { "value": "[variables('NICs').PDCNicName]" },
+          "BDCNicName": { "value": "[variables('NICs').BDCNicName]" },
+          "SQL1NicName": { "value": "[variables('NICs').SQL1NicName]" },
+          "SQL2NicName": { "value": "[variables('NICs').SQL2NicName]" },
+          "JumpboxNicName": { "value": "[variables('NICs').JumpboxNicName]" },
+
+          "PDCIpAddress": { "value": "[variables('PrivateIPs').PDCIP]" },
+          "BDCIpAddress": { "value": "[variables('PrivateIPs').BDCIP]" },
+          "SQL1IpAddress": { "value": "[variables('PrivateIPs').SQL1IP]" },
+          "SQL2IpAddress": { "value": "[variables('PrivateIPs').SQL2IP]" },
+
+          "DcSubnetID": { "value": "[variables('DcSubnetID')]" },
+          "SqlSubnetID": { "value": "[variables('SqlSubnetID')]" },
+          "JumpboxSubnetID": { "value": "[variables('JumpboxSubnetID')]" },
+
+          "LBBEAddressPoolID": { "value": "[variables('LBBEAddressPoolID')]" },
+
+          "PublicIPAddressName": { "value": "[variables('PublicIPAddressName')]" }
+        }
+      }
+    },
+    {
+      "name": "VirtualMachines",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Create PDC, BDC VMs",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/Nics"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('VMsTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+
+          "DCVMSize": { "value": "[variables('DCVMSize')]" },
+          "DcAvailabilitySetName": { "value": "[variables('AvailabilitySet').dcAvSetName]" },
+          "DcImagePublisher": { "value": "[variables('DcImagePublisher')]" },
+          "DcImageOffer": { "value": "[variables('DcImageOffer')]" },
+          "DcImageSKU": { "value": "[variables('DcImageSKU')]" },
+
+          "SQLVMSize": { "value": "[variables('SQLVMSize')]" },
+          "SqlAvailabilitySetName": { "value": "[variables('AvailabilitySet').sqlAvSetName]" },
+          "SqlImagePublisher": { "value": "[variables('SqlImagePublisher')]" },
+          "SqlImageOffer": { "value": "[variables('SqlImageOffer')]" },
+          "SqlImageSKU": { "value": "[variables('SqlImageSKU')]" },
+
+          "AdminUsername": { "value": "[parameters('AdminUsername')]" },
+          "AdminPassword": { "value": "[parameters('AdminPassword')]" },
+
+          "SQLServiceUserName": { "value": "[parameters('SqlServiceUserName')]" },
+          "SQLServiceUserPassword": { "value": "[parameters('SqlServiceUserPassword')]" },
+
+          "SqlAuthenticationLogin": { "value": "[parameters('SqlAuthenticationLogin')]" },
+          "SqlAuthenticationPassword": { "value": "[parameters('SqlAuthenticationPassword')]" },
+
+          "PDCVMName": { "value": "[variables('VMNames').PDCName]" },
+          "PDCNicName": { "value": "[variables('NICs').PDCNicName]" },
+
+          "BDCVMName": { "value": "[variables('VMNames').BDCName]" },
+          "BDCNicName": { "value": "[variables('NICs').BDCNicName]" },
+
+          "JumpboxVMName": { "value": "[variables('VMNames').JumboxName]" },
+          "JumpboxNicName": { "value": "[variables('NICs').JumpboxNicName]" },
+
+          "SQLVMName": { "value": "[variables('VMNames').SQLNamePrefix]" },
+
+          "PDCVMIP": { "value": "[variables('PrivateIPs').PDCIP]" },
+
+          "PDCConfigurationModulesURL": { "value": "[variables('PDCConfigurationModulesURL')]" },
+          "PDCConfigurationFunction": { "value": "[variables('PDCConfigurationFunction')]" },
+
+          "DomainName": { "value": "[variables('DomainName')]" },
+
+          "VirtualNetworkName": { "value": "[variables('VirtualNetworkName')]" },
+          "VirtualNetworkAddressRange": { "value": "[variables('VirtualNetworkAddressRange')]" },
+
+          "Subnets": { "value": "[variables('Subnets')]" },
+
+          "DNSTemplateUri": { "value": "[concat(variables('DNSTemplateUri'), parameters('_artifactsLocationSasToken'))]" },
+
+          "DiagnosticsStorageAccountName": { "value": "[variables('DiagnosticsStorageAccountName')]" }
+        }
+      }
+    },
+    {
+      "name": "BackupDomainController",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Configure Backup Domain Controller",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/VirtualMachines"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('BDCTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "BDCVMName": { "value": "[variables('VMNames').BDCName]" },
+
+          "BDCConfigurationModulesURL": { "value": "[variables('BDCConfigurationModulesURL')]" },
+          "BDCConfigurationFunction": { "value": "[variables('BDCConfigurationFunction')]" },
+
+          "PDCVMIP": { "value": "[variables('PrivateIPs').PDCIP]" },
+          "BDCVMIP": { "value": "[variables('PrivateIPs').BDCIP]" },
+
+          "DomainName": { "value": "[variables('DomainName')]" },
+
+          "AdminUsername": { "value": "[parameters('AdminUsername')]" },
+          "AdminPassword": { "value": "[parameters('AdminPassword')]" },
+
+          "VirtualNetworkName": { "value": "[variables('VirtualNetworkName')]" },
+          "VirtualNetworkAddressRange": { "value": "[variables('VirtualNetworkAddressRange')]" },
+
+          "Subnets": { "value": "[variables('Subnets')]" },
+
+          "DNSTemplateUri": { "value": "[concat(variables('DNSTemplateUri'), parameters('_artifactsLocationSasToken'))]" }
+
+        }
+      }
+    },
+    {
+      "name": "SQLAlwaysOn",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Configure SQL AlwaysOn Cluster",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/VirtualMachines"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('SQLAlwaysOnTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "SQLVM1Name": { "value": "[variables('VMNames').SQL1Name]" },
+          "SQLVM2Name": { "value": "[variables('VMNames').SQL2Name]" },
+
+          "SQLConfigurationModulesURL": { "value": "[variables('SQLConfigurationModulesURL')]" },
+          "SQLConfigurationFunction": { "value": "[variables('SQLConfigurationFunction')]" },
+
+          "DomainName": { "value": "[variables('DomainName')]" },
+
+          "AdminUsername": { "value": "[parameters('AdminUsername')]" },
+          "AdminUserPassword": { "value": "[parameters('AdminPassword')]" },
+
+          "SQLServiceUserName": { "value": "[parameters('SqlServiceUserName')]" },
+          "SQLServiceUserPassword": { "value": "[parameters('SqlServiceUserPassword')]" },
+
+          "ClusterName": { "value": "[variables('ClusterName')]" },
+          "ClusterOwnerNode": { "value": "[variables('ClusterOwnerNode')]" },
+          "ClusterIP": { "value": "[variables('ClusterIP')]" },
+
+          "SQLServerVirtualName": { "value": "[variables('SQLServerVirtualName')]" },
+          "AvailabilityGroupName": { "value": "[variables('AvailabilityGroupName')]" },
+
+          "WitnessStorageAccountName": { "value": "[variables('WitnessStorageAccountName')]" },
+          "StorageAccountType": { "value": "[variables('StorageAccountType')]" }
+        }
+      }
+    }
+  ],
+  "outputs": {}
+}

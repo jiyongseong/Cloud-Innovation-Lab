@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "AdminUsername": { "value": "labuser" },
+    "SqlServiceUserName": { "value": "sqlsvc" },
+    "SqlAuthenticationLogin": { "value": "sqladmin" },
+
+    "AdminPassword": { "value": "yourP@ssw0rd" },
+    "SqlServiceUserPassword": { "value": "yourP@ssw0rd" },
+    "SqlAuthenticationPassword": { "value": "yourP@ssw0rd" }
+  }
+}

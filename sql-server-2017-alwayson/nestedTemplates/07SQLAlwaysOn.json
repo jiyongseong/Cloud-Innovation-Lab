@@ -1,0 +1,131 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+
+    "SQLVM1Name": { "type": "string" },
+    "SQLVM2Name": { "type": "string" },
+
+    "SQLConfigurationModulesURL": { "type": "string" },
+    "SQLConfigurationFunction": { "type": "string" },
+
+    "DomainName": { "type": "string" },
+
+    "AdminUserName": { "type": "string" },
+    "AdminUserPassword": { "type": "securestring" },
+
+    "SQLServiceUserName": { "type": "string" },
+    "SQLServiceUserPassword": { "type": "securestring" },
+
+    "ClusterName": { "type": "securestring" },
+    "ClusterOwnerNode": { "type": "securestring" },
+    "ClusterIP": { "type": "securestring" },
+
+    "SQLServerVirtualName": { "type": "string" },
+    "AvailabilityGroupName": { "type": "string" },
+
+    "WitnessStorageAccountName": { "type": "string" },
+    "StorageAccountType": { "type": "string" }
+  },
+  "variables": {
+  },
+  "resources": [
+    {
+      "name": "[parameters('WitnessStorageAccountName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2017-10-01",
+      "location": "[resourceGroup().location]",
+      "sku": { "name": "[parameters('StorageAccountType')]" },
+      "kind": "Storage",
+      "tags": { "displayName": "Storage Account for Cluster Witness" }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('SQLVM1Name'), '/CreateSQLServerClusterNode1')]",
+      "apiVersion": "2017-12-01",
+      "location": "[resourceGroup().location]",
+      "tags": { "displayName": "Create SQL Server AlwaysOn Cluster Primary Node" },
+      "properties": {
+        "publisher": "Microsoft.Powershell",
+        "type": "DSC",
+        "typeHandlerVersion": "2.21",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "ModulesUrl": "[parameters('SQLConfigurationModulesURL')]",
+          "ConfigurationFunction": "[parameters('SQLConfigurationFunction')]",
+          "Properties": {
+            "DomainName": "[parameters('DomainName')]",
+            "Admincreds": {
+              "UserName": "[parameters('AdminUserName')]",
+              "Password": "PrivateSettingsRef:adminPassword"
+            },
+            "SQLServicecreds": {
+              "UserName": "[parameters('SQLServiceUserName')]",
+              "Password": "PrivateSettingsRef:sqlServicePassword"
+            },
+            "ClusterName": "[parameters('ClusterName')]",
+            "ClusterOwnerNode": "[parameters('ClusterOwnerNode')]",
+            "ClusterIP": "[parameters('ClusterIP')]",
+
+            "SQLServerVirtualName": "[parameters('SQLServerVirtualName')]",
+            "AvailabilityGroupName": "[parameters('AvailabilityGroupName')]",
+
+            "witnessStorageBlobEndpoint": "[reference(parameters('WitnessStorageAccountName'), '2016-01-01').primaryEndpoints.blob]",
+            "witnessStorageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('WitnessStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+          }
+        },
+        "protectedSettings": {
+          "Items": {
+            "adminPassword": "[parameters('AdminUserPassword')]",
+            "sqlServicePassword": "[parameters('SQLServiceUserPassword')]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('SQLVM2Name'), '/CreateSQLServerCluster2')]",
+      "apiVersion": "2017-12-01",
+      "location": "[resourceGroup().location]",
+      "tags": { "displayName": "Create SQL Server AlwaysOn Cluster Secondary Node" },
+      "properties": {
+        "publisher": "Microsoft.Powershell",
+        "type": "DSC",
+        "typeHandlerVersion": "2.21",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "ModulesUrl": "[parameters('SQLConfigurationModulesURL')]",
+          "ConfigurationFunction": "[parameters('SQLConfigurationFunction')]",
+          "Properties": {
+            "DomainName": "[parameters('DomainName')]",
+            "Admincreds": {
+              "UserName": "[parameters('AdminUserName')]",
+              "Password": "PrivateSettingsRef:adminPassword"
+            },
+            "SQLServicecreds": {
+              "UserName": "[parameters('SQLServiceUserName')]",
+              "Password": "PrivateSettingsRef:sqlServicePassword"
+            },
+            "ClusterName": "[parameters('ClusterName')]",
+            "ClusterOwnerNode": "[parameters('ClusterOwnerNode')]",
+            "ClusterIP": "[parameters('ClusterIP')]",
+
+            "SQLServerVirtualName": "[parameters('SQLServerVirtualName')]",
+            "AvailabilityGroupName": "[parameters('AvailabilityGroupName')]",
+
+            "witnessStorageBlobEndpoint": "[reference(parameters('WitnessStorageAccountName'), '2016-01-01').primaryEndpoints.blob]",
+            "witnessStorageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('WitnessStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+          }
+        },
+        "protectedSettings": {
+          "Items": {
+            "adminPassword": "[parameters('AdminUserPassword')]",
+            "sqlServicePassword": "[parameters('SQLServiceUserPassword')]"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+  }
+}

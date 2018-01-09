@@ -1,0 +1,151 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "PDCNicName": { "type": "string" },
+    "BDCNicName": { "type": "string" },
+    "SQL1NicName": { "type": "string" },
+    "SQL2NicName": { "type": "string" },
+    "JumpboxNicName": { "type": "string" },
+
+    "PDCIpAddress": { "type": "string" },
+    "BDCIpAddress": { "type": "string" },
+    "SQL1IpAddress": { "type": "string" },
+    "SQL2IpAddress": { "type": "string" },
+
+    "DcSubnetID": { "type": "string" },
+    "SqlSubnetID": { "type": "string" },
+    "JumpboxSubnetID": { "type": "string" },
+
+    "LBBEAddressPoolID": { "type": "string" },
+
+    "PublicIPAddressName": {"type": "string"}
+  },
+  "variables": {
+    "PublicIpAddressID": "[resourceId(resourceGroup().Name,'Microsoft.Network/publicIpAddresses', parameters('PublicIPAddressName'))]"
+  },
+  "resources": [
+    {
+      "name": "[parameters('PDCNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2017-08-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[parameters('PDCIpAddress')]",
+              "subnet": {
+                "id": "[parameters('DcSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for PDC" }
+    },
+    {
+      "name": "[parameters('BDCNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2017-08-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[parameters('BDCIpAddress')]",
+              "subnet": {
+                "id": "[parameters('DcSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for BDC" }
+    },
+    {
+      "name": "[parameters('SQL1NicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[parameters('SQL1IpAddress')]",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[parameters('LBBEAddressPoolID')]"
+                }
+              ]
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for SQL1" }
+    },
+    {
+      "name": "[parameters('SQL2NicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[parameters('SQL2IpAddress')]",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[parameters('LBBEAddressPoolID')]"
+                }
+              ]
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for SQL2" }
+    },
+    {
+      "name": "[parameters('JumpboxNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2017-08-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('JumpboxSubnetID')]"
+              },
+              "publicIpAddress": {
+                "id": "[variables('PublicIpAddressID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for Jumpbox" }
+    }
+  ]
+}

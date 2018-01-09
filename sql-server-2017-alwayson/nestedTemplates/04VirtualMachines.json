@@ -1,0 +1,463 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+
+    "DCVMSize": { "type": "string" },
+    "DcAvailabilitySetName": { "type": "string" },
+    "DcImagePublisher": { "type": "string" },
+    "DcImageOffer": { "type": "string" },
+    "DcImageSKU": { "type": "string" },
+
+    "SQLVMSize": { "type": "string" },
+    "SqlAvailabilitySetName": { "type": "string" },
+    "SqlImagePublisher": { "type": "string" },
+    "SqlImageOffer": { "type": "string" },
+    "SqlImageSKU": { "type": "string" },
+
+    "AdminUsername": { "type": "string" },
+    "AdminPassword": { "type": "string" },
+
+    "SQLServiceUserName": { "type": "string" },
+    "SQLServiceUserPassword": { "type": "securestring" },
+
+    "SqlAuthenticationLogin": { "type": "string" },
+    "SqlAuthenticationPassword": { "type": "securestring" },
+
+    "PDCVMName": { "type": "string" },
+    "PDCNicName": { "type": "string" },
+
+    "BDCVMName": { "type": "string" },
+    "BDCNicName": { "type": "string" },
+
+    "JumpboxVMName": { "type": "string" },
+    "JumpboxNicName": { "type": "string" },
+
+    "SQLVMName": { "type": "string" },
+
+    "PDCVMIP": { "type": "string" },
+
+    "PDCConfigurationModulesURL": { "type": "string" },
+    "PDCConfigurationFunction": { "type": "string" },
+
+    "DomainName": { "type": "string" },
+
+    "VirtualNetworkName": { "type": "string" },
+    "VirtualNetworkAddressRange": { "type": "string" },
+
+    "Subnets": { "type": "array" },
+
+    "DNSTemplateUri": { "type": "string" },
+
+    "DiagnosticsStorageAccountName": { "type": "string" }
+  },
+  "variables": {
+    "DomainNames": "[split(parameters('DomainName'),'.')]",
+    "Domain1": "[variables('DomainNames')[0]]",
+    "Domain2": "[variables('DomainNames')[1]]",
+    "DomainAdmin": "[concat(parameters('AdminUserName'), '@', parameters('DomainName'))]"
+  },
+  "resources": [
+    {
+      "name": "[parameters('PDCVMName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2017-12-01",
+      "location": "[resourceGroup().location]",
+      "tags": { "displayName": "PDC VM" },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('DCVMSize')]"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('DcAvailabilitySetName'))]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('PDCVMName')]",
+          "adminUsername": "[parameters('AdminUsername')]",
+          "adminPassword": "[parameters('AdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[parameters('DcImagePublisher')]",
+            "offer": "[parameters('DcImageOffer')]",
+            "sku": "[parameters('DcImageSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat(parameters('PDCVMName'), '-OS-Disk')]",
+            "managedDisk": {
+              "storageAccountType": "Standard_LRS"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "name": "[concat(parameters('PDCVMName'),'-Data-Disk1')]",
+              "diskSizeGB": 32,
+              "lun": 0,
+              "createOption": "Empty",
+              "caching": "None",
+              "managedDisk": {
+                "storageAccountType": "Standard_LRS"
+              }
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('PDCNicName'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',parameters('DiagnosticsStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      },
+      "resources": [
+        {
+          "name": "CreateADForest",
+          "type": "extensions",
+          "apiVersion": "2017-12-01",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', parameters('PDCVMName'))]"
+          ],
+          "properties": {
+            "publisher": "Microsoft.Powershell",
+            "type": "DSC",
+            "typeHandlerVersion": "2.19",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "ModulesUrl": "[parameters('PDCConfigurationModulesURL')]",
+              "ConfigurationFunction": "[parameters('PDCConfigurationFunction')]",
+              "Properties": {
+                "DomainName": "[parameters('DomainName')]",
+                "AdminCreds": {
+                  "UserName": "[parameters('adminUsername')]",
+                  "Password": "PrivateSettingsRef:AdminPassword"
+                },
+                "SQLServicecreds": {
+                  "UserName": "[parameters('SQLServiceUserName')]",
+                  "Password": "PrivateSettingsRef:SQLSvcUserPassword"
+                }
+              }
+            },
+            "protectedSettings": {
+              "Items": {
+                "AdminPassword": "[parameters('adminPassword')]",
+                "SQLSvcUserPassword": "[parameters('SQLServiceUserPassword')]"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "[parameters('BDCVMName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2017-12-01",
+      "location": "[resourceGroup().location]",
+      "tags": { "displayName": "BDC VM" },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('DCVMSize')]"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('DcAvailabilitySetName'))]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('BDCVMName')]",
+          "adminUsername": "[parameters('AdminUsername')]",
+          "adminPassword": "[parameters('AdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[parameters('DcImagePublisher')]",
+            "offer": "[parameters('DcImageOffer')]",
+            "sku": "[parameters('DcImageSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat(parameters('BDCVMName'), '-OS-Disk')]",
+            "managedDisk": {
+              "storageAccountType": "Standard_LRS"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "name": "[concat(parameters('BDCVMName'),'-Data-Disk1')]",
+              "diskSizeGB": 32,
+              "lun": 0,
+              "createOption": "Empty",
+              "caching": "None",
+              "managedDisk": {
+                "storageAccountType": "Standard_LRS"
+              }
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('BDCNicName'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',parameters('DiagnosticsStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "[parameters('JumpboxVMName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2017-12-01",
+      "location": "[resourceGroup().location]",
+      "tags": { "displayName": "Jumpbox VM" },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('DCVMSize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('JumpboxVMName')]",
+          "adminUsername": "[parameters('AdminUsername')]",
+          "adminPassword": "[parameters('AdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[parameters('DcImagePublisher')]",
+            "offer": "[parameters('DcImageOffer')]",
+            "sku": "[parameters('DcImageSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat(parameters('JumpboxVMName'), '-OS-Disk')]",
+            "managedDisk": {
+              "storageAccountType": "Standard_LRS"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('JumpboxNicName'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',parameters('DiagnosticsStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "UpdateVNetDNS1",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('PDCVMName'),'/extensions/CreateADForest')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[parameters('DNSTemplateUri')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "VirtualNetworkName": { "value": "[parameters('virtualNetworkName')]" },
+          "VirtualNetworkAddressRange": { "value": "[parameters('virtualNetworkAddressRange')]" },
+          "Subnets": { "value": "[parameters('Subnets')]" },
+          "DNSServerAddress": { "value": [ "[parameters('PDCVMIP')]"] }
+        }
+      }
+    },
+    {
+      "apiVersion": "2017-12-01",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('SQLVMName'), '-0',copyindex(1))]",
+      "location": "[resourceGroup().location]",
+      "tags": { "displayName": "Create SQL VMs" },
+      "dependsOn": [
+        "Microsoft.Resources/deployments/UpdateVNetDNS1"
+      ],
+      "copy": {
+        "name": "sqlVirtualMachineLoop",
+        "count": 2
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('SQLVMSize')]"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets',parameters('SqlAvailabilitySetName'))]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('SQLVMName'), '-0', copyindex(1))]",
+          "adminUsername": "[parameters('AdminUsername')]",
+          "adminPassword": "[parameters('AdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[parameters('SqlImagePublisher')]",
+            "offer": "[parameters('SqlImageOffer')]",
+            "sku": "[parameters('SqlImageSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat(parameters('SQLVMName'),  '-0', copyindex(1), '-OS-Disk')]",
+            "managedDisk": {
+              "storageAccountType": "Standard_LRS"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "name": "[concat(parameters('SQLVMName'), '-0', copyindex(1),'-Data-Disk1')]",
+              "diskSizeGB": 1023,
+              "lun": 0,
+              "createOption": "Empty",
+              "caching": "None",
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              }
+            },
+            {
+              "name": "[concat(parameters('SQLVMName'), '-0', copyindex(1),'-Data-Disk2')]",
+              "diskSizeGB": 1023,
+              "lun": 1,
+              "createOption": "Empty",
+              "caching": "None",
+              "managedDisk": {
+                "storageAccountType": "Premium_LRS"
+              }
+            },
+            {
+              "name": "[concat(parameters('SQLVMName'), '-0', copyindex(1),'-Backup-Disk1')]",
+              "diskSizeGB": 1023,
+              "lun": 2,
+              "createOption": "Empty",
+              "caching": "None",
+              "managedDisk": {
+                "storageAccountType": "Standard_LRS"
+              }
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('SQLVMName'), '-0', copyindex(1),'-NIC'))]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('http://',parameters('DiagnosticsStorageAccountName'),'.blob.core.windows.net')]"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('SQLVMName'), '-0', copyindex(1), '/SqlIaasExtension')]",
+      "location": "[resourceGroup().location]",
+      "tags": { "displayName": "Configure SQL IaaS Extension" },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', concat(parameters('SQLVMName'), '-0',copyindex(1)))]"
+      ],
+      "copy": {
+        "name": "sqlIaasExtensionsLoop",
+        "count": 2
+      },
+      "properties": {
+        "type": "SqlIaaSAgent",
+        "publisher": "Microsoft.SqlServer.Management",
+        "typeHandlerVersion": "1.2",
+        "autoUpgradeMinorVersion": "true",
+        "settings": {
+          "AutoTelemetrySettings": {
+            "Region": "[resourceGroup().location]"
+          },
+          "AutoPatchingSettings": {
+            "PatchCategory": "WindowsMandatoryUpdates",
+            "Enable": true,
+            "DayOfWeek": "Sunday",
+            "MaintenanceWindowStartingHour": "2",
+            "MaintenanceWindowDuration": "60"
+          },
+          "AutoBackupSettings": {
+            "Enable": false,
+            "RetentionPeriod": "30",
+            "EnableEncryption": false
+          },
+          "KeyVaultCredentialSettings": {
+            "Enable": false,
+            "CredentialName": ""
+          },
+          "ServerConfigurationsManagementSettings": {
+            "SQLConnectivityUpdateSettings": {
+              "ConnectivityType": "Private",
+              "Port": "1433"
+            },
+            "AdditionalFeaturesServerConfigurations": {
+              "IsRServicesEnabled": "false"
+            }
+          }
+        },
+        "protectedSettings": {
+          "SQLAuthUpdateUserName": "[parameters('SqlAuthenticationLogin')]",
+          "SQLAuthUpdatePassword": "[parameters('SqlAuthenticationPassword')]"
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('SQLVMName'), '-0', copyindex(1), '/JoinDomain')]",
+      "location": "[resourceGroup().location]",
+      "tags": { "displayName": "SQL VMs - Join Domain" },
+      "dependsOn": [
+        "[concat(resourceId('Microsoft.Compute/virtualMachines', concat(parameters('SQLVMName'), '-0', copyindex(1))), '/extensions/SqlIaasExtension')]"
+      ],
+      "copy": {
+        "name": "sqlVmJoinLoop",
+        "count": 2
+      },
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "JsonADDomainExtension",
+        "typeHandlerVersion": "1.3",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "Name": "[parameters('DomainName')]",
+          "OUPath": "",
+          "User": "[variables('DomainAdmin')]",
+          "Restart": "true",
+          "Options": "3"
+        },
+        "protectedSettings": {
+          "Password": "[parameters('AdminPassword')]"
+        }
+      }
+    } 
+  ],
+  "outputs": {
+  }
+}
