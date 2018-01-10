@@ -1,23 +1,23 @@
-﻿$ClientID       = "ApplicationID"
-$ClientSecret   = "key from Application"
-$tennantid      = "tenant id"
+﻿$clientID       = "ApplicationID"
+$clientSecret   = "key from Application"
+$tennantId      = "tenant id"
 
-$TokenEndpoint = {https://login.windows.net/{0}/oauth2/token} -f $tennantid 
-$ARMResource = "https://management.core.windows.net/";
+$tokenEndpoint = {https://login.windows.net/{0}/oauth2/token} -f $tennantId 
+$mgmtURI = "https://management.core.windows.net/";
 
-$Body = @{
-        'resource'= $ARMResource
-        'client_id' = $ClientID
+$body = @{
+        'resource'= $mgmtURI
+        'client_id' = $clientID
         'grant_type' = 'client_credentials'
-        'client_secret' = $ClientSecret
+        'client_secret' = $clientSecret
 }
 
 $params = @{
     ContentType = 'application/x-www-form-urlencoded'
     Headers = @{'accept'='application/json'}
-    Body = $Body
+    Body = $body
     Method = 'Post'
-    URI = $TokenEndpoint
+    URI = $tokenEndpoint
 }
 
 $token = Invoke-RestMethod @params
@@ -25,7 +25,7 @@ $token = Invoke-RestMethod @params
 $token | select access_token, @{L='Expires';E={[timezone]::CurrentTimeZone.ToLocalTime(([datetime]'1/1/1970').AddSeconds($_.expires_on))}} | fl *
 
 #region Get Azure Subscription
-$SubscriptionID="cae76bde-fb86-4335-aef5-33674b746691"
+$subscriptionID="cae76bde-fb86-4335-aef5-33674b746691"
 
 $paramsRest = @{
     ContentType = 'application/json'
@@ -33,7 +33,7 @@ $paramsRest = @{
     'Authorization'="Bearer $($token.access_token)"
     }
     Method = 'Get'
-    URI = "https://management.azure.com/subscriptions/$SubscriptionID/providers/Microsoft.Commerce/RateCard?api-version=2016-08-31-preview&`$filter=OfferDurableId eq 'MS-AZR-0003P' and Currency eq 'KRW' and Locale eq 'ko-KR' and RegionInfo eq 'KR'"
+    URI = "https://management.azure.com/subscriptions/$subscriptionID/providers/Microsoft.Commerce/RateCard?api-version=2016-08-31-preview&`$filter=OfferDurableId eq 'MS-AZR-0003P' and Currency eq 'KRW' and Locale eq 'ko-KR' and RegionInfo eq 'KR'"
 }
 
 $results = Invoke-RestMethod @paramsRest 
