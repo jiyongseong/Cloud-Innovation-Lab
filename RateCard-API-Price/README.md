@@ -25,5 +25,4 @@ $paramsRest = @{
 * OfferDurableId는 https://azure.microsoft.com/en-us/support/legal/offer-details/ 사이트를 참고
 * Currency는 화폐 단위를 의미하며, 미국 달러의 경우에는 USD로 변경
 
-Access Token을 만드는 방법은 아래의 사이트를 참조
-[Using the Azure ARM REST API – Get Access Token](https://blogs.technet.microsoft.com/stefan_stranger/2016/10/21/using-the-azure-arm-rest-apin-get-access-token/)
+Access Token을 만드는 방법은 [Using the Azure ARM REST API – Get Access Token](https://blogs.technet.microsoft.com/stefan_stranger/2016/10/21/using-the-azure-arm-rest-apin-get-access-token/) 사이트를 참조
