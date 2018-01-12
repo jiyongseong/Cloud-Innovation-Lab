@@ -24,7 +24,6 @@ $token = Invoke-RestMethod @params
 
 $token | select access_token, @{L='Expires';E={[timezone]::CurrentTimeZone.ToLocalTime(([datetime]'1/1/1970').AddSeconds($_.expires_on))}} | fl *
 
-#region Get Azure Subscription
 $subscriptionID="your subscription id"
 
 $paramsRest = @{
