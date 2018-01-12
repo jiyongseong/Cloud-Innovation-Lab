@@ -1,0 +1,218 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+
+    "SQL8R2WS8R2SP1NIC": { "type": "string" },
+    "SQL12SP4WS12R2NIC": { "type": "string" },
+    "SQL14SP2WS12R2NIC": { "type": "string" },
+    "SQL16SP1WS12R2NIC": { "type": "string" },
+    "SQL16SP1WS16NIC": { "type": "string" },
+    "SQL17SLES12SP2NIC": { "type": "string" },
+    "SQL17Ubuntu1604NIC": { "type": "string" },
+    "SQL17WS16NIC": { "type": "string" },
+    "JumpboxNicName": { "type": "string" },
+    
+    "SqlSubnetID": { "type": "string" },
+    "JumpboxSubnetID": { "type": "string" },
+
+    "PublicIPAddressName": { "type": "string" }
+  },
+  "variables": {
+    "PublicIpAddressID": "[resourceId(resourceGroup().Name,'Microsoft.Network/publicIpAddresses', parameters('PublicIPAddressName'))]"
+  },
+  "resources": [
+    {
+      "name": "[parameters('SQL8R2WS8R2SP1NIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for SQL8R2-WS8R2SP1" }
+    },
+    {
+      "name": "[parameters('SQL12SP4WS12R2NIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for SQL12SP4-WS12R2" }
+    },
+    {
+      "name": "[parameters('SQL14SP2WS12R2NIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for SQL14SP2-WS12R2" }
+    },
+    {
+      "name": "[parameters('SQL16SP1WS12R2NIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for SQL16SP1-WS12R2" }
+    },
+    {
+      "name": "[parameters('SQL16SP1WS16NIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for SQL16SP1-WS16" }
+    },
+    {
+      "name": "[parameters('SQL17SLES12SP2NIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for SQL17-SLES12SP2" }
+    },
+    {
+      "name": "[parameters('SQL17Ubuntu1604NIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for SQL17-Ubuntu1604" }
+    },
+    {
+      "name": "[parameters('SQL17WS16NIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('SqlSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for SQL17-WS16NIC" }
+    },
+    {
+      "name": "[parameters('JumpboxNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2017-08-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('JumpboxSubnetID')]"
+              },
+              "publicIpAddress": {
+                "id": "[variables('PublicIpAddressID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for Jumpbox" }
+    }
+  ]
+}

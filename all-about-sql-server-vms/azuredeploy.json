@@ -1,0 +1,268 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+      }
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated."
+      },
+      "defaultValue": ""
+    },
+    "AdminUsername": {"type": "string", "defaultValue": "labuser"},
+    "AdminPassword": { "type": "securestring" },
+    "SqlServiceUserName": { "type": "string" , "defaultValue": "sqlsvc"},
+    "SqlServiceUserPassword": { "type": "securestring" },
+    "SqlAuthenticationLogin": { "type": "string" , "defaultValue": "sqladmin"},
+    "SqlAuthenticationPassword": { "type": "securestring" }
+  },
+  "variables": {
+
+    "-----Nested Templates Path Variables-----": "",
+    "BaseTemplateUri": "[concat(parameters('_artifactsLocation'), '/', 'nestedTemplates')]",
+    "NetworkTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '01Networks.json')]",
+    "NicTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '03NICs.json')]",
+    "VMsTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '04VirtualMachines.json')]",
+
+    "-----Networks Variables-----": "",
+    "VirtualNetworkName": "SQLAOAG-VNET",
+    "VirtualNetworkAddressRange": "10.0.0.0/16",
+
+    "SubnetNames": {
+      "AppSubnetName": "App-Subnet",
+      "SqlSubnetName": "SQL-Subnet",
+      "JumpboxSubnetName": "jumpbox-Subnet"
+    },
+    "SubnetIPAddresses": {
+      "AppSubnetIPAddress": "10.0.1.0/24",
+      "SqlSubnetIPAddress": "10.0.9.0/24",
+      "JumpboxSubnetIPAddress": "10.0.0.0/24"
+    },
+    "Subnets": [
+      {
+        "name": "[variables('SubnetNames').AppSubnetName]",
+        "properties": { "addressPrefix": "[variables('SubnetIPAddresses').AppSubnetIPAddress]" }
+      },
+      {
+        "name": "[variables('SubnetNames').SqlSubnetName]",
+        "properties": { "addressPrefix": "[variables('SubnetIPAddresses').SqlSubnetIPAddress]" }
+      },
+      {
+        "name": "[variables('SubnetNames').JumpboxSubnetName]",
+        "properties": { "addressPrefix": "[variables('SubnetIPAddresses').JumpboxSubnetIPAddress]" }
+      }
+    ],
+
+    "VnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
+    "AppSubnetID": "[concat(variables('VnetID'),'/subnets/',variables('SubnetNames').AppSubnetName)]",
+    "SqlSubnetID": "[concat(variables('VnetID'),'/subnets/',variables('SubnetNames').SqlSubnetName)]",
+    "JumpboxSubnetID": "[concat(variables('VnetID'),'/subnets/',variables('SubnetNames').JumpboxSubnetName)]",
+
+    "PublicIPAddressName": "Jumpbox-PIP",
+
+    "DiagnosticsStorageAccountName": "[concat('diag', uniqueString(resourceGroup().id))]",
+    "StorageAccountType": "Standard_LRS",
+
+    "-----VM Variables-----": "",
+    "VMNames": [
+      {
+        "Name": "SQL8R2WS8R2SP1",
+        "Value": "SQL8R2-WS8R2SP1"
+      },
+      {
+        "Name": "SQL12SP4WS12R2",
+        "Value": "SQL12SP4-WS12R2"
+      },
+      {
+        "Name": "SQL14SP2WS12R2",
+        "Value": "SQL14SP2-WS12R2"
+      },
+      {
+        "Name": "SQL16SP1WS12R2",
+        "Value": "SQL16SP1-WS12R2"
+      },
+      {
+        "Name": "SQL16SP1WS16",
+        "Value": "SQL16SP1-WS16"
+      },
+      {
+        "Name": "SQL17SLES12SP2",
+        "Value": "SQL17-SLES12SP2"
+      },
+      {
+        "Name": "SQL17Ubuntu1604",
+        "Value": "SQL17-Ubuntu1604"
+      },
+      {
+        "Name": "SQL17WS16",
+        "Value": "SQL17-WS16"
+      },
+      {
+        "Name": "JumboxName",
+        "Value": "JumpboxVM"
+      }
+    ],
+
+    "JumpboxVMSize": "Standard_D2_v2_Promo",
+    "JumpboxImagePublisher": "MicrosoftWindowsServer",
+    "JumpboxImageOffer": "WindowsServer",
+    "JumpboxImageSKU": "2016-Datacenter",
+
+    "-----SQL VMs Variables-----": "",
+    "SQLVMSize": "Standard_DS2_v2",
+    "SqlImagePublisher": "MicrosoftSqlServer",
+    "SqlImageOffers": [
+      {
+        "Name": "SQL8R2WS8R2SP1",
+        "Offer": "SQL2008R2SP3-WS2008R2SP1"
+      },
+      {
+        "Name": "SQL12SP4WS12R2",
+        "Offer": "SQL2012SP4-WS2012R2"
+      },
+      {
+        "Name": "SQL14SP2WS12R2",
+        "Offer": "SQL2014SP2-WS2012R2"
+      },
+      {
+        "Name": "SQL16SP1WS12R2",
+        "Offer": "SQL2016SP1-WS2012R2"
+      },
+      {
+        "Name": "SQL16SP1WS16",
+        "Offer": "SQL2016SP1-WS2016"
+      },
+      {
+        "Name": "SQL17SLES12SP2",
+        "Offer": "SQL2017-SLES12SP2"
+      },
+      {
+        "Name": "SQL17Ubuntu1604",
+        "Offer": "SQL2017-Ubuntu1604"
+      },
+      {
+        "Name": "SQL17WS16",
+        "Offer": "SQL2017-WS2016"
+      }
+    ],
+    "SqlImageSku": "Enterprise"
+  },
+  "resources": [
+    {
+      "name": "NetworkResources",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Create Virtual Network, Availability Sets, PIP",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('NetworkTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+
+          "VirtualNetworkName": { "value": "[variables('VirtualNetworkName')]" },
+          "VirtualNetworkAddressRange": { "value": "[variables('VirtualNetworkAddressRange')]" },
+
+          "Subnets": { "value": "[variables('Subnets')]" },
+
+          "DiagnosticsStorageAccountName": { "value": "[variables('DiagnosticsStorageAccountName')]" },
+          "StorageAccountType": { "value": "[variables('StorageAccountType')]" },
+
+          "PublicIPAddressName": { "value": "[variables('PublicIPAddressName')]" }
+
+        }
+      }
+    },
+    {
+      "name": "Nics",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Create Nics",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/NetworkResources"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('NicTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+
+          "SQL8R2WS8R2SP1NIC": { "value": "[concat(variables('VMNames')[0].Value, '-NIC')]" },
+          "SQL12SP4WS12R2NIC": { "value": "[concat(variables('VMNames')[1].Value, '-NIC')]" },
+          "SQL14SP2WS12R2NIC": { "value": "[concat(variables('VMNames')[2].Value, '-NIC')]" },
+          "SQL16SP1WS12R2NIC": { "value": "[concat(variables('VMNames')[3].Value, '-NIC')]" },
+          "SQL16SP1WS16NIC": { "value": "[concat(variables('VMNames')[4].Value, '-NIC')]" },
+          "SQL17SLES12SP2NIC": { "value": "[concat(variables('VMNames')[5].Value, '-NIC')]" },
+          "SQL17Ubuntu1604NIC": { "value": "[concat(variables('VMNames')[6].Value, '-NIC')]" },
+          "SQL17WS16NIC": { "value": "[concat(variables('VMNames')[7].Value, '-NIC')]" },
+          "JumpboxNicName": { "value": "[concat(variables('VMNames')[8].Value, '-NIC')]" },
+
+          "SqlSubnetID": { "value": "[variables('SqlSubnetID')]" },
+          "JumpboxSubnetID": { "value": "[variables('JumpboxSubnetID')]" },
+
+          "PublicIPAddressName": { "value": "[variables('PublicIPAddressName')]" }
+        }
+      }
+    },
+    {
+      "name": "VirtualMachines",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Create VMs",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/Nics",
+        "Microsoft.Resources/deployments/NetworkResources"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('VMsTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+
+          "JumpboxVMSize": { "value": "[variables('JumpboxVMSize')]" },
+          "JumpboxImagePublisher": { "value": "[variables('JumpboxImagePublisher')]" },
+          "JumpboxImageOffer": { "value": "[variables('JumpboxImageOffer')]" },
+          "JumpboxImageSKU": { "value": "[variables('JumpboxImageSKU')]" },
+
+          "SQLVMSize": { "value": "[variables('SQLVMSize')]" },
+          "SqlImagePublisher": { "value": "[variables('SqlImagePublisher')]" },
+          "SqlImageOffers": { "value": "[variables('SqlImageOffers')]" },
+          "SqlImageSKU": { "value": "[variables('SqlImageSKU')]" },
+
+          "AdminUsername": { "value": "[parameters('AdminUsername')]" },
+          "AdminPassword": { "value": "[parameters('AdminPassword')]" },
+
+          "SQLServiceUserName": { "value": "[parameters('SqlServiceUserName')]" },
+          "SQLServiceUserPassword": { "value": "[parameters('SqlServiceUserPassword')]" },
+
+          "SqlAuthenticationLogin": { "value": "[parameters('SqlAuthenticationLogin')]" },
+          "SqlAuthenticationPassword": { "value": "[parameters('SqlAuthenticationPassword')]" },
+
+          "JumpboxVMName": { "value": "[variables('VMNames')[8].Value]" },
+          "JumpboxNicName": { "value": "[concat(variables('VMNames')[8].Value, '-NIC')]" },
+
+          "SQLVMNames": { "value": "[variables('VMNames')]" },
+
+          "VirtualNetworkName": { "value": "[variables('VirtualNetworkName')]" },
+          "VirtualNetworkAddressRange": { "value": "[variables('VirtualNetworkAddressRange')]" },
+
+          "Subnets": { "value": "[variables('Subnets')]" },
+
+          "DiagnosticsStorageAccountName": { "value": "[variables('DiagnosticsStorageAccountName')]" }
+        }
+      }
+    }
+  ],
+  "outputs": {}
+}
