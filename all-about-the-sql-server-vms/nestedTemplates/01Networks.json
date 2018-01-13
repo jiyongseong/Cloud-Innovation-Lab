@@ -12,7 +12,7 @@
 
     "PublicIPAddressName": { "type": "string" }
   },
-    "variables": {},
+  "variables": {},
   "resources": [
     {
       "name": "[parameters('DiagnosticsStorageAccountName')]",
@@ -47,4 +47,4 @@
       "tags": { "displayName": "Virtual Network" }
     }
   ]
-  }
+}

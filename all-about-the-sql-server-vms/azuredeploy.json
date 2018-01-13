@@ -15,11 +15,20 @@
       },
       "defaultValue": ""
     },
-    "AdminUsername": {"type": "string", "defaultValue": "labuser"},
+    "AdminUsername": {
+      "type": "string",
+      "defaultValue": "labuser"
+    },
     "AdminPassword": { "type": "securestring" },
-    "SqlServiceUserName": { "type": "string" , "defaultValue": "sqlsvc"},
+    "SqlServiceUserName": {
+      "type": "string",
+      "defaultValue": "sqlsvc"
+    },
     "SqlServiceUserPassword": { "type": "securestring" },
-    "SqlAuthenticationLogin": { "type": "string" , "defaultValue": "sqladmin"},
+    "SqlAuthenticationLogin": {
+      "type": "string",
+      "defaultValue": "sqladmin"
+    },
     "SqlAuthenticationPassword": { "type": "securestring" }
   },
   "variables": {
@@ -31,7 +40,7 @@
     "VMsTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '04VirtualMachines.json')]",
 
     "-----Networks Variables-----": "",
-    "VirtualNetworkName": "SQLAOAG-VNET",
+    "VirtualNetworkName": "SQLServer-VNET",
     "VirtualNetworkAddressRange": "10.0.0.0/16",
 
     "SubnetNames": {
@@ -70,7 +79,7 @@
     "StorageAccountType": "Standard_LRS",
 
     "-----VM Variables-----": "",
-    "VMNames": [
+    "WindowsVMNames": [
       {
         "Name": "SQL8R2WS8R2SP1",
         "Value": "SQL8R2-WS8R2SP1"
@@ -92,24 +101,24 @@
         "Value": "SQL16SP1-WS16"
       },
       {
+        "Name": "SQL17WS16",
+        "Value": "SQL17-WS16"
+      }
+    ],
+
+    "LinuxVMNames": [
+      {
         "Name": "SQL17SLES12SP2",
         "Value": "SQL17-SLES12SP2"
       },
       {
         "Name": "SQL17Ubuntu1604",
         "Value": "SQL17-Ubuntu1604"
-      },
-      {
-        "Name": "SQL17WS16",
-        "Value": "SQL17-WS16"
-      },
-      {
-        "Name": "JumboxName",
-        "Value": "JumpboxVM"
       }
     ],
 
     "JumpboxVMSize": "Standard_D2_v2_Promo",
+    "JumpboxVMName": "JumpboxVM",
     "JumpboxImagePublisher": "MicrosoftWindowsServer",
     "JumpboxImageOffer": "WindowsServer",
     "JumpboxImageSKU": "2016-Datacenter",
@@ -117,7 +126,7 @@
     "-----SQL VMs Variables-----": "",
     "SQLVMSize": "Standard_DS2_v2",
     "SqlImagePublisher": "MicrosoftSqlServer",
-    "SqlImageOffers": [
+    "WindowsSqlImageOffers": [
       {
         "Name": "SQL8R2WS8R2SP1",
         "Offer": "SQL2008R2SP3-WS2008R2SP1"
@@ -139,16 +148,18 @@
         "Offer": "SQL2016SP1-WS2016"
       },
       {
+        "Name": "SQL17WS16",
+        "Offer": "SQL2017-WS2016"
+      }
+    ],
+    "LinuxSqlImageOffers": [
+      {
         "Name": "SQL17SLES12SP2",
         "Offer": "SQL2017-SLES12SP2"
       },
       {
         "Name": "SQL17Ubuntu1604",
         "Offer": "SQL2017-Ubuntu1604"
-      },
-      {
-        "Name": "SQL17WS16",
-        "Offer": "SQL2017-WS2016"
       }
     ],
     "SqlImageSku": "Enterprise"
@@ -196,15 +207,10 @@
         },
         "parameters": {
 
-          "SQL8R2WS8R2SP1NIC": { "value": "[concat(variables('VMNames')[0].Value, '-NIC')]" },
-          "SQL12SP4WS12R2NIC": { "value": "[concat(variables('VMNames')[1].Value, '-NIC')]" },
-          "SQL14SP2WS12R2NIC": { "value": "[concat(variables('VMNames')[2].Value, '-NIC')]" },
-          "SQL16SP1WS12R2NIC": { "value": "[concat(variables('VMNames')[3].Value, '-NIC')]" },
-          "SQL16SP1WS16NIC": { "value": "[concat(variables('VMNames')[4].Value, '-NIC')]" },
-          "SQL17SLES12SP2NIC": { "value": "[concat(variables('VMNames')[5].Value, '-NIC')]" },
-          "SQL17Ubuntu1604NIC": { "value": "[concat(variables('VMNames')[6].Value, '-NIC')]" },
-          "SQL17WS16NIC": { "value": "[concat(variables('VMNames')[7].Value, '-NIC')]" },
-          "JumpboxNicName": { "value": "[concat(variables('VMNames')[8].Value, '-NIC')]" },
+          "WindowsVMNames": { "value": "[variables('WindowsVMNames')]" },
+          "LinuxVMNames": { "value": "[variables('LinuxVMNames')]" },
+
+          "JumpboxVMName": { "value": "[variables('JumpboxVMName')]" },
 
           "SqlSubnetID": { "value": "[variables('SqlSubnetID')]" },
           "JumpboxSubnetID": { "value": "[variables('JumpboxSubnetID')]" },
@@ -237,7 +243,8 @@
 
           "SQLVMSize": { "value": "[variables('SQLVMSize')]" },
           "SqlImagePublisher": { "value": "[variables('SqlImagePublisher')]" },
-          "SqlImageOffers": { "value": "[variables('SqlImageOffers')]" },
+          "WindowsSqlImageOffers": { "value": "[variables('WindowsSqlImageOffers')]" },
+          "LinuxSqlImageOffers": { "value": "[variables('LinuxSqlImageOffers')]" },
           "SqlImageSKU": { "value": "[variables('SqlImageSKU')]" },
 
           "AdminUsername": { "value": "[parameters('AdminUsername')]" },
@@ -249,10 +256,11 @@
           "SqlAuthenticationLogin": { "value": "[parameters('SqlAuthenticationLogin')]" },
           "SqlAuthenticationPassword": { "value": "[parameters('SqlAuthenticationPassword')]" },
 
-          "JumpboxVMName": { "value": "[variables('VMNames')[8].Value]" },
-          "JumpboxNicName": { "value": "[concat(variables('VMNames')[8].Value, '-NIC')]" },
+          "JumpboxVMName": { "value": "[variables('JumpboxVMName')]" },
+          "JumpboxNicName": { "value": "[concat(variables('JumpboxVMName'), '-NIC')]" },
 
-          "SQLVMNames": { "value": "[variables('VMNames')]" },
+          "WindowsVMNames": { "value": "[variables('WindowsVMNames')]" },
+          "LinuxVMNames": { "value": "[variables('LinuxVMNames')]" },
 
           "VirtualNetworkName": { "value": "[variables('VirtualNetworkName')]" },
           "VirtualNetworkAddressRange": { "value": "[variables('VirtualNetworkAddressRange')]" },
