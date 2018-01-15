@@ -3,6 +3,6 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "AdminUsername": { "value": "labuser" },
-    "AdminPassword": { "value": "Wjswk123!@#!@#" }
+    "AdminPassword": { "value": "your password" }
   }
 }
