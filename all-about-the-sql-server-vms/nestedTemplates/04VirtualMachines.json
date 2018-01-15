@@ -10,7 +10,8 @@
 
     "SQLVMSize": { "type": "string" },
     "SqlImagePublisher": { "type": "string" },
-    "SqlImageOffers": { "type": "array" },
+    "WindowsSqlImageOffers": { "type": "array" },
+    "LinuxSqlImageOffers": { "type": "array" },
     "SqlImageSKU": { "type": "string" },
 
     "AdminUsername": { "type": "string" },
@@ -25,7 +26,8 @@
     "JumpboxVMName": { "type": "string" },
     "JumpboxNicName": { "type": "string" },
 
-    "SQLVMNames": { "type": "array" },
+    "WindowsVMNames": { "type": "array" },
+    "LinuxVMNames": { "type": "array" },
 
     "VirtualNetworkName": { "type": "string" },
     "VirtualNetworkAddressRange": { "type": "string" },
@@ -87,27 +89,31 @@
     {
       "apiVersion": "2017-12-01",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[parameters('SQLVMNames')[0].Value]", /*SQL8R2WS8R2SP1*/
+      "name": "[parameters('WindowsVMNames')[copyindex()].Value]",
       "location": "[resourceGroup().location]",
-      "tags": { "displayName": "SQL2008R2-WS2008R2SP1" },
+      "tags": { "displayName": "Create SQL Server  VM - Windows" },
+      "copy": {
+        "name": "Windows SQL VM copy",
+        "count": "[length(parameters('WindowsVMNames'))]"
+      },
       "properties": {
         "hardwareProfile": {
           "vmSize": "[parameters('SQLVMSize')]"
         },
         "osProfile": {
-          "computerName": "[parameters('SQLVMNames')[0].Value]",
+          "computerName": "[parameters('WindowsVMNames')[copyindex()].Value]",
           "adminUsername": "[parameters('AdminUsername')]",
           "adminPassword": "[parameters('AdminPassword')]"
         },
         "storageProfile": {
           "imageReference": {
             "publisher": "[parameters('SqlImagePublisher')]",
-            "offer": "[parameters('SqlImageOffers')[0].Offer]",
+            "offer": "[parameters('WindowsSqlImageOffers')[0].Offer]",
             "sku": "[parameters('SqlImageSKU')]",
             "version": "latest"
           },
           "osDisk": {
-            "name": "[concat(parameters('SQLVMNames')[0].Value, '-OS-Disk')]",
+            "name": "[concat(parameters('WindowsVMNames')[copyindex()].Value, '-OS-Disk')]",
             "managedDisk": {
               "storageAccountType": "Standard_LRS"
             },
@@ -116,7 +122,7 @@
           },
           "dataDisks": [
             {
-              "name": "[concat(parameters('SQLVMNames')[0].Value,'-Data-Disk1')]",
+              "name": "[concat(parameters('WindowsVMNames')[copyindex()].Value,'-Data-Disk1')]",
               "diskSizeGB": 1023,
               "lun": 0,
               "createOption": "Empty",
@@ -126,7 +132,7 @@
               }
             },
             {
-              "name": "[concat(parameters('SQLVMNames')[0].Value,'-Data-Disk2')]",
+              "name": "[concat(parameters('WindowsVMNames')[copyindex()].Value,'-Data-Disk2')]",
               "diskSizeGB": 1023,
               "lun": 1,
               "createOption": "Empty",
@@ -136,7 +142,7 @@
               }
             },
             {
-              "name": "[concat(parameters('SQLVMNames')[0].Value,'-Backup-Disk1')]",
+              "name": "[concat(parameters('WindowsVMNames')[copyindex()].Value,'-Backup-Disk1')]",
               "diskSizeGB": 1023,
               "lun": 2,
               "createOption": "Empty",
@@ -150,7 +156,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('SQLVMNames')[0].Value,'-NIC'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('WindowsVMNames')[copyindex()].Value,'-NIC'))]"
             }
           ]
         },
@@ -165,11 +171,11 @@
         {
           "apiVersion": "2015-06-15",
           "type": "Microsoft.Compute/virtualMachines/extensions",
-          "name": "[concat(parameters('SQLVMNames')[0].Value, '/SqlIaasExtension')]",
+          "name": "[concat(parameters('WindowsVMNames')[copyindex()].Value, '/SqlIaasExtension')]",
           "location": "[resourceGroup().location]",
           "tags": { "displayName": "SQL IaaS Extension" },
           "dependsOn": [
-            "[resourceId('Microsoft.Compute/virtualMachines', parameters('SQLVMNames')[0].Value)]"
+            "[resourceId('Microsoft.Compute/virtualMachines', parameters('WindowsVMNames')[copyindex()].Value)]"
           ],
           "properties": {
             "type": "SqlIaaSAgent",
@@ -217,157 +223,31 @@
     {
       "apiVersion": "2017-12-01",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[parameters('SQLVMNames')[1].Value]", /*SQL12SP4WS12R2*/
+      "name": "[parameters('LinuxVMNames')[copyindex()].Value]",
       "location": "[resourceGroup().location]",
-      "tags": { "displayName": "SQL2012SP4-WS2012R2" },
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "[parameters('SQLVMSize')]"
-        },
-        "osProfile": {
-          "computerName": "[parameters('SQLVMNames')[1].Value]",
-          "adminUsername": "[parameters('AdminUsername')]",
-          "adminPassword": "[parameters('AdminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "[parameters('SqlImagePublisher')]",
-            "offer": "[parameters('SqlImageOffers')[1].Offer]",
-            "sku": "[parameters('SqlImageSKU')]",
-            "version": "latest"
-          },
-          "osDisk": {
-            "name": "[concat(parameters('SQLVMNames')[1].Value, '-OS-Disk')]",
-            "managedDisk": {
-              "storageAccountType": "Standard_LRS"
-            },
-            "caching": "ReadWrite",
-            "createOption": "FromImage"
-          },
-          "dataDisks": [
-            {
-              "name": "[concat(parameters('SQLVMNames')[1].Value,'-Data-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 0,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[1].Value,'-Data-Disk2')]",
-              "diskSizeGB": 1023,
-              "lun": 1,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[1].Value,'-Backup-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 2,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Standard_LRS"
-              }
-            }
-          ]
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('SQLVMNames')[1].Value,'-NIC'))]"
-            }
-          ]
-        },
-        "diagnosticsProfile": {
-          "bootDiagnostics": {
-            "enabled": "true",
-            "storageUri": "[concat('http://',parameters('DiagnosticsStorageAccountName'),'.blob.core.windows.net')]"
-          }
-        }
+      "tags": { "displayName": "Create SQL Server  VM - Linux" },
+      "copy": {
+        "name": "Linux SQL VM copy",
+        "count": "[length(parameters('LinuxVMNames'))]"
       },
-      "resources": [
-        {
-          "apiVersion": "2015-06-15",
-          "type": "Microsoft.Compute/virtualMachines/extensions",
-          "name": "[concat(parameters('SQLVMNames')[1].Value, '/SqlIaasExtension')]",
-          "location": "[resourceGroup().location]",
-          "tags": { "displayName": "SQL IaaS Extension" },
-          "dependsOn": [
-            "[resourceId('Microsoft.Compute/virtualMachines', parameters('SQLVMNames')[1].Value)]"
-          ],
-          "properties": {
-            "type": "SqlIaaSAgent",
-            "publisher": "Microsoft.SqlServer.Management",
-            "typeHandlerVersion": "1.2",
-            "autoUpgradeMinorVersion": "true",
-            "settings": {
-              "AutoTelemetrySettings": {
-                "Region": "[resourceGroup().location]"
-              },
-              "AutoPatchingSettings": {
-                "PatchCategory": "WindowsMandatoryUpdates",
-                "Enable": true,
-                "DayOfWeek": "Sunday",
-                "MaintenanceWindowStartingHour": "2",
-                "MaintenanceWindowDuration": "60"
-              },
-              "AutoBackupSettings": {
-                "Enable": false,
-                "RetentionPeriod": "30",
-                "EnableEncryption": false
-              },
-              "KeyVaultCredentialSettings": {
-                "Enable": false,
-                "CredentialName": ""
-              },
-              "ServerConfigurationsManagementSettings": {
-                "SQLConnectivityUpdateSettings": {
-                  "ConnectivityType": "Private",
-                  "Port": "1433"
-                },
-                "AdditionalFeaturesServerConfigurations": {
-                  "IsRServicesEnabled": "false"
-                }
-              }
-            },
-            "protectedSettings": {
-              "SQLAuthUpdateUserName": "[parameters('SqlAuthenticationLogin')]",
-              "SQLAuthUpdatePassword": "[parameters('SqlAuthenticationPassword')]"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "apiVersion": "2017-12-01",
-      "type": "Microsoft.Compute/virtualMachines",
-      "name": "[parameters('SQLVMNames')[2].Value]", /*SQL14SP2WS12R2*/
-      "location": "[resourceGroup().location]",
-      "tags": { "displayName": "SQL2014SP2-WS2012R2" },
       "properties": {
         "hardwareProfile": {
           "vmSize": "[parameters('SQLVMSize')]"
         },
         "osProfile": {
-          "computerName": "[parameters('SQLVMNames')[2].Value]",
+          "computerName": "[parameters('LinuxVMNames')[copyindex()].Value]",
           "adminUsername": "[parameters('AdminUsername')]",
           "adminPassword": "[parameters('AdminPassword')]"
         },
         "storageProfile": {
           "imageReference": {
             "publisher": "[parameters('SqlImagePublisher')]",
-            "offer": "[parameters('SqlImageOffers')[2].Offer]",
+            "offer": "[parameters('LinuxSqlImageOffers')[copyindex()].Offer]",
             "sku": "[parameters('SqlImageSKU')]",
             "version": "latest"
           },
           "osDisk": {
-            "name": "[concat(parameters('SQLVMNames')[2].Value, '-OS-Disk')]",
+            "name": "[concat(parameters('LinuxVMNames')[copyindex()].Value, '-OS-Disk')]",
             "managedDisk": {
               "storageAccountType": "Standard_LRS"
             },
@@ -376,7 +256,7 @@
           },
           "dataDisks": [
             {
-              "name": "[concat(parameters('SQLVMNames')[2].Value,'-Data-Disk1')]",
+              "name": "[concat(parameters('LinuxVMNames')[copyindex()].Value,'-Data-Disk1')]",
               "diskSizeGB": 1023,
               "lun": 0,
               "createOption": "Empty",
@@ -386,7 +266,7 @@
               }
             },
             {
-              "name": "[concat(parameters('SQLVMNames')[2].Value,'-Data-Disk2')]",
+              "name": "[concat(parameters('LinuxVMNames')[copyindex()].Value,'-Data-Disk2')]",
               "diskSizeGB": 1023,
               "lun": 1,
               "createOption": "Empty",
@@ -396,7 +276,7 @@
               }
             },
             {
-              "name": "[concat(parameters('SQLVMNames')[2].Value,'-Backup-Disk1')]",
+              "name": "[concat(parameters('LinuxVMNames')[copyindex()].Value,'-Backup-Disk1')]",
               "diskSizeGB": 1023,
               "lun": 2,
               "createOption": "Empty",
@@ -410,605 +290,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('SQLVMNames')[2].Value,'-NIC'))]"
-            }
-          ]
-        },
-        "diagnosticsProfile": {
-          "bootDiagnostics": {
-            "enabled": "true",
-            "storageUri": "[concat('http://',parameters('DiagnosticsStorageAccountName'),'.blob.core.windows.net')]"
-          }
-        }
-      },
-      "resources": [
-        {
-          "apiVersion": "2015-06-15",
-          "type": "Microsoft.Compute/virtualMachines/extensions",
-          "name": "[concat(parameters('SQLVMNames')[2].Value, '/SqlIaasExtension')]",
-          "location": "[resourceGroup().location]",
-          "tags": { "displayName": "SQL IaaS Extension" },
-          "dependsOn": [
-            "[resourceId('Microsoft.Compute/virtualMachines', parameters('SQLVMNames')[2].Value)]"
-          ],
-          "properties": {
-            "type": "SqlIaaSAgent",
-            "publisher": "Microsoft.SqlServer.Management",
-            "typeHandlerVersion": "1.2",
-            "autoUpgradeMinorVersion": "true",
-            "settings": {
-              "AutoTelemetrySettings": {
-                "Region": "[resourceGroup().location]"
-              },
-              "AutoPatchingSettings": {
-                "PatchCategory": "WindowsMandatoryUpdates",
-                "Enable": true,
-                "DayOfWeek": "Sunday",
-                "MaintenanceWindowStartingHour": "2",
-                "MaintenanceWindowDuration": "60"
-              },
-              "AutoBackupSettings": {
-                "Enable": false,
-                "RetentionPeriod": "30",
-                "EnableEncryption": false
-              },
-              "KeyVaultCredentialSettings": {
-                "Enable": false,
-                "CredentialName": ""
-              },
-              "ServerConfigurationsManagementSettings": {
-                "SQLConnectivityUpdateSettings": {
-                  "ConnectivityType": "Private",
-                  "Port": "1433"
-                },
-                "AdditionalFeaturesServerConfigurations": {
-                  "IsRServicesEnabled": "false"
-                }
-              }
-            },
-            "protectedSettings": {
-              "SQLAuthUpdateUserName": "[parameters('SqlAuthenticationLogin')]",
-              "SQLAuthUpdatePassword": "[parameters('SqlAuthenticationPassword')]"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "apiVersion": "2017-12-01",
-      "type": "Microsoft.Compute/virtualMachines",
-      "name": "[parameters('SQLVMNames')[3].Value]", /*SQL16SP1WS12R2*/
-      "location": "[resourceGroup().location]",
-      "tags": { "displayName": "SQL2016SP1-WS2012R2" },
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "[parameters('SQLVMSize')]"
-        },
-        "osProfile": {
-          "computerName": "[parameters('SQLVMNames')[3].Value]",
-          "adminUsername": "[parameters('AdminUsername')]",
-          "adminPassword": "[parameters('AdminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "[parameters('SqlImagePublisher')]",
-            "offer": "[parameters('SqlImageOffers')[3].Offer]",
-            "sku": "[parameters('SqlImageSKU')]",
-            "version": "latest"
-          },
-          "osDisk": {
-            "name": "[concat(parameters('SQLVMNames')[3].Value, '-OS-Disk')]",
-            "managedDisk": {
-              "storageAccountType": "Standard_LRS"
-            },
-            "caching": "ReadWrite",
-            "createOption": "FromImage"
-          },
-          "dataDisks": [
-            {
-              "name": "[concat(parameters('SQLVMNames')[3].Value,'-Data-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 0,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[3].Value,'-Data-Disk2')]",
-              "diskSizeGB": 1023,
-              "lun": 1,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[3].Value,'-Backup-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 2,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Standard_LRS"
-              }
-            }
-          ]
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('SQLVMNames')[3].Value,'-NIC'))]"
-            }
-          ]
-        },
-        "diagnosticsProfile": {
-          "bootDiagnostics": {
-            "enabled": "true",
-            "storageUri": "[concat('http://',parameters('DiagnosticsStorageAccountName'),'.blob.core.windows.net')]"
-          }
-        }
-      },
-      "resources": [
-        {
-          "apiVersion": "2015-06-15",
-          "type": "Microsoft.Compute/virtualMachines/extensions",
-          "name": "[concat(parameters('SQLVMNames')[3].Value, '/SqlIaasExtension')]",
-          "location": "[resourceGroup().location]",
-          "tags": { "displayName": "SQL IaaS Extension" },
-          "dependsOn": [
-            "[resourceId('Microsoft.Compute/virtualMachines', parameters('SQLVMNames')[3].Value)]"
-          ],
-          "properties": {
-            "type": "SqlIaaSAgent",
-            "publisher": "Microsoft.SqlServer.Management",
-            "typeHandlerVersion": "1.2",
-            "autoUpgradeMinorVersion": "true",
-            "settings": {
-              "AutoTelemetrySettings": {
-                "Region": "[resourceGroup().location]"
-              },
-              "AutoPatchingSettings": {
-                "PatchCategory": "WindowsMandatoryUpdates",
-                "Enable": true,
-                "DayOfWeek": "Sunday",
-                "MaintenanceWindowStartingHour": "2",
-                "MaintenanceWindowDuration": "60"
-              },
-              "AutoBackupSettings": {
-                "Enable": false,
-                "RetentionPeriod": "30",
-                "EnableEncryption": false
-              },
-              "KeyVaultCredentialSettings": {
-                "Enable": false,
-                "CredentialName": ""
-              },
-              "ServerConfigurationsManagementSettings": {
-                "SQLConnectivityUpdateSettings": {
-                  "ConnectivityType": "Private",
-                  "Port": "1433"
-                },
-                "AdditionalFeaturesServerConfigurations": {
-                  "IsRServicesEnabled": "false"
-                }
-              }
-            },
-            "protectedSettings": {
-              "SQLAuthUpdateUserName": "[parameters('SqlAuthenticationLogin')]",
-              "SQLAuthUpdatePassword": "[parameters('SqlAuthenticationPassword')]"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "apiVersion": "2017-12-01",
-      "type": "Microsoft.Compute/virtualMachines",
-      "name": "[parameters('SQLVMNames')[4].Value]", /*SQL16SP1WS16*/
-      "location": "[resourceGroup().location]",
-      "tags": { "displayName": "SQL2016SP1-WS2016" },
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "[parameters('SQLVMSize')]"
-        },
-        "osProfile": {
-          "computerName": "[parameters('SQLVMNames')[4].Value]",
-          "adminUsername": "[parameters('AdminUsername')]",
-          "adminPassword": "[parameters('AdminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "[parameters('SqlImagePublisher')]",
-            "offer": "[parameters('SqlImageOffers')[4].Offer]",
-            "sku": "[parameters('SqlImageSKU')]",
-            "version": "latest"
-          },
-          "osDisk": {
-            "name": "[concat(parameters('SQLVMNames')[4].Value, '-OS-Disk')]",
-            "managedDisk": {
-              "storageAccountType": "Standard_LRS"
-            },
-            "caching": "ReadWrite",
-            "createOption": "FromImage"
-          },
-          "dataDisks": [
-            {
-              "name": "[concat(parameters('SQLVMNames')[4].Value,'-Data-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 0,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[4].Value,'-Data-Disk2')]",
-              "diskSizeGB": 1023,
-              "lun": 1,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[4].Value,'-Backup-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 2,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Standard_LRS"
-              }
-            }
-          ]
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('SQLVMNames')[4].Value,'-NIC'))]"
-            }
-          ]
-        },
-        "diagnosticsProfile": {
-          "bootDiagnostics": {
-            "enabled": "true",
-            "storageUri": "[concat('http://',parameters('DiagnosticsStorageAccountName'),'.blob.core.windows.net')]"
-          }
-        }
-      },
-      "resources": [
-        {
-          "apiVersion": "2015-06-15",
-          "type": "Microsoft.Compute/virtualMachines/extensions",
-          "name": "[concat(parameters('SQLVMNames')[4].Value, '/SqlIaasExtension')]",
-          "location": "[resourceGroup().location]",
-          "tags": { "displayName": "SQL IaaS Extension" },
-          "dependsOn": [
-            "[resourceId('Microsoft.Compute/virtualMachines', parameters('SQLVMNames')[4].Value)]"
-          ],
-          "properties": {
-            "type": "SqlIaaSAgent",
-            "publisher": "Microsoft.SqlServer.Management",
-            "typeHandlerVersion": "1.2",
-            "autoUpgradeMinorVersion": "true",
-            "settings": {
-              "AutoTelemetrySettings": {
-                "Region": "[resourceGroup().location]"
-              },
-              "AutoPatchingSettings": {
-                "PatchCategory": "WindowsMandatoryUpdates",
-                "Enable": true,
-                "DayOfWeek": "Sunday",
-                "MaintenanceWindowStartingHour": "2",
-                "MaintenanceWindowDuration": "60"
-              },
-              "AutoBackupSettings": {
-                "Enable": false,
-                "RetentionPeriod": "30",
-                "EnableEncryption": false
-              },
-              "KeyVaultCredentialSettings": {
-                "Enable": false,
-                "CredentialName": ""
-              },
-              "ServerConfigurationsManagementSettings": {
-                "SQLConnectivityUpdateSettings": {
-                  "ConnectivityType": "Private",
-                  "Port": "1433"
-                },
-                "AdditionalFeaturesServerConfigurations": {
-                  "IsRServicesEnabled": "false"
-                }
-              }
-            },
-            "protectedSettings": {
-              "SQLAuthUpdateUserName": "[parameters('SqlAuthenticationLogin')]",
-              "SQLAuthUpdatePassword": "[parameters('SqlAuthenticationPassword')]"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "apiVersion": "2017-12-01",
-      "type": "Microsoft.Compute/virtualMachines",
-      "name": "[parameters('SQLVMNames')[7].Value]", /*SQL17WS16*/
-      "location": "[resourceGroup().location]",
-      "tags": { "displayName": "SQL2017-WS2016" },
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "[parameters('SQLVMSize')]"
-        },
-        "osProfile": {
-          "computerName": "[parameters('SQLVMNames')[7].Value]",
-          "adminUsername": "[parameters('AdminUsername')]",
-          "adminPassword": "[parameters('AdminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "[parameters('SqlImagePublisher')]",
-            "offer": "[parameters('SqlImageOffers')[7].Offer]",
-            "sku": "[parameters('SqlImageSKU')]",
-            "version": "latest"
-          },
-          "osDisk": {
-            "name": "[concat(parameters('SQLVMNames')[7].Value, '-OS-Disk')]",
-            "managedDisk": {
-              "storageAccountType": "Standard_LRS"
-            },
-            "caching": "ReadWrite",
-            "createOption": "FromImage"
-          },
-          "dataDisks": [
-            {
-              "name": "[concat(parameters('SQLVMNames')[7].Value,'-Data-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 0,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[7].Value,'-Data-Disk2')]",
-              "diskSizeGB": 1023,
-              "lun": 1,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[7].Value,'-Backup-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 2,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Standard_LRS"
-              }
-            }
-          ]
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('SQLVMNames')[7].Value,'-NIC'))]"
-            }
-          ]
-        },
-        "diagnosticsProfile": {
-          "bootDiagnostics": {
-            "enabled": "true",
-            "storageUri": "[concat('http://',parameters('DiagnosticsStorageAccountName'),'.blob.core.windows.net')]"
-          }
-        }
-      },
-      "resources": [
-        {
-          "apiVersion": "2015-06-15",
-          "type": "Microsoft.Compute/virtualMachines/extensions",
-          "name": "[concat(parameters('SQLVMNames')[7].Value, '/SqlIaasExtension')]",
-          "location": "[resourceGroup().location]",
-          "tags": { "displayName": "SQL IaaS Extension" },
-          "dependsOn": [
-            "[resourceId('Microsoft.Compute/virtualMachines', parameters('SQLVMNames')[7].Value)]"
-          ],
-          "properties": {
-            "type": "SqlIaaSAgent",
-            "publisher": "Microsoft.SqlServer.Management",
-            "typeHandlerVersion": "1.2",
-            "autoUpgradeMinorVersion": "true",
-            "settings": {
-              "AutoTelemetrySettings": {
-                "Region": "[resourceGroup().location]"
-              },
-              "AutoPatchingSettings": {
-                "PatchCategory": "WindowsMandatoryUpdates",
-                "Enable": true,
-                "DayOfWeek": "Sunday",
-                "MaintenanceWindowStartingHour": "2",
-                "MaintenanceWindowDuration": "60"
-              },
-              "AutoBackupSettings": {
-                "Enable": false,
-                "RetentionPeriod": "30",
-                "EnableEncryption": false
-              },
-              "KeyVaultCredentialSettings": {
-                "Enable": false,
-                "CredentialName": ""
-              },
-              "ServerConfigurationsManagementSettings": {
-                "SQLConnectivityUpdateSettings": {
-                  "ConnectivityType": "Private",
-                  "Port": "1433"
-                },
-                "AdditionalFeaturesServerConfigurations": {
-                  "IsRServicesEnabled": "false"
-                }
-              }
-            },
-            "protectedSettings": {
-              "SQLAuthUpdateUserName": "[parameters('SqlAuthenticationLogin')]",
-              "SQLAuthUpdatePassword": "[parameters('SqlAuthenticationPassword')]"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "apiVersion": "2017-12-01",
-      "type": "Microsoft.Compute/virtualMachines",
-      "name": "[parameters('SQLVMNames')[5].Value]", /*SQL17SLES12SP2*/
-      "location": "[resourceGroup().location]",
-      "tags": { "displayName": "SQL2017-SLES12SP2" },
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "[parameters('SQLVMSize')]"
-        },
-        "osProfile": {
-          "computerName": "[parameters('SQLVMNames')[5].Value]",
-          "adminUsername": "[parameters('AdminUsername')]",
-          "adminPassword": "[parameters('AdminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "[parameters('SqlImagePublisher')]",
-            "offer": "[parameters('SqlImageOffers')[5].Offer]",
-            "sku": "[parameters('SqlImageSKU')]",
-            "version": "latest"
-          },
-          "osDisk": {
-            "name": "[concat(parameters('SQLVMNames')[5].Value, '-OS-Disk')]",
-            "managedDisk": {
-              "storageAccountType": "Standard_LRS"
-            },
-            "caching": "ReadWrite",
-            "createOption": "FromImage"
-          },
-          "dataDisks": [
-            {
-              "name": "[concat(parameters('SQLVMNames')[5].Value,'-Data-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 0,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[5].Value,'-Data-Disk2')]",
-              "diskSizeGB": 1023,
-              "lun": 1,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[5].Value,'-Backup-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 2,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Standard_LRS"
-              }
-            }
-          ]
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('SQLVMNames')[5].Value,'-NIC'))]"
-            }
-          ]
-        },
-        "diagnosticsProfile": {
-          "bootDiagnostics": {
-            "enabled": "true",
-            "storageUri": "[concat('http://',parameters('DiagnosticsStorageAccountName'),'.blob.core.windows.net')]"
-          }
-        }
-      }
-    },
-    {
-      "apiVersion": "2017-12-01",
-      "type": "Microsoft.Compute/virtualMachines",
-      "name": "[parameters('SQLVMNames')[6].Value]", /*SQL17Ubuntu1604*/
-      "location": "[resourceGroup().location]",
-      "tags": { "displayName": "SQL2017-Ubuntu1604" },
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "[parameters('SQLVMSize')]"
-        },
-        "osProfile": {
-          "computerName": "[parameters('SQLVMNames')[6].Value]",
-          "adminUsername": "[parameters('AdminUsername')]",
-          "adminPassword": "[parameters('AdminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "[parameters('SqlImagePublisher')]",
-            "offer": "[parameters('SqlImageOffers')[6].Offer]",
-            "sku": "[parameters('SqlImageSKU')]",
-            "version": "latest"
-          },
-          "osDisk": {
-            "name": "[concat(parameters('SQLVMNames')[6].Value, '-OS-Disk')]",
-            "managedDisk": {
-              "storageAccountType": "Standard_LRS"
-            },
-            "caching": "ReadWrite",
-            "createOption": "FromImage"
-          },
-          "dataDisks": [
-            {
-              "name": "[concat(parameters('SQLVMNames')[6].Value,'-Data-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 0,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[6].Value,'-Data-Disk2')]",
-              "diskSizeGB": 1023,
-              "lun": 1,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Premium_LRS"
-              }
-            },
-            {
-              "name": "[concat(parameters('SQLVMNames')[6].Value,'-Backup-Disk1')]",
-              "diskSizeGB": 1023,
-              "lun": 2,
-              "createOption": "Empty",
-              "caching": "None",
-              "managedDisk": {
-                "storageAccountType": "Standard_LRS"
-              }
-            }
-          ]
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('SQLVMNames')[6].Value,'-NIC'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('LinuxVMNames')[copyindex()].Value,'-NIC'))]"
             }
           ]
         },
