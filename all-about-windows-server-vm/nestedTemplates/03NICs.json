@@ -1,0 +1,68 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+
+    "VMNames": { "type": "array" },
+    "JumpboxVMName": { "type": "string" },
+
+    "WindowsSubnetID": { "type": "string" },
+    "JumpboxSubnetID": { "type": "string" },
+
+    "PublicIPAddressName": { "type": "string" }
+  },
+  "variables": {
+    "PublicIpAddressID": "[resourceId(resourceGroup().Name,'Microsoft.Network/publicIpAddresses', parameters('PublicIPAddressName'))]"
+  },
+  "resources": [
+    {
+      "name": "[concat(parameters('VMNames')[copyindex()].Value, '-NIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2017-08-01",
+      "copy": {
+        "name": "NIC copy",
+        "count": "[length(parameters('VMNames'))]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('WindowsSubnetID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for VM" }
+    },
+    {
+      "name": "[concat(parameters('JumpboxVMName'), '-NIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2017-08-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[parameters('JumpboxSubnetID')]"
+              },
+              "publicIpAddress": {
+                "id": "[variables('PublicIpAddressID')]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": false
+      },
+      "tags": { "displayName": "NIC for Jumpbox" }
+    }
+  ]
+}

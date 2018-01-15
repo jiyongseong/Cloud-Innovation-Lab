@@ -1,0 +1,278 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "The base URI where artifacts required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+      }
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated."
+      },
+      "defaultValue": ""
+    },
+    "AdminUsername": {"type": "string", "defaultValue": "labuser"},
+    "AdminPassword": { "type": "securestring" }
+  },
+  "variables": {
+
+    "-----Nested Templates Path Variables-----": "",
+    "BaseTemplateUri": "[concat(parameters('_artifactsLocation'), '/', 'nestedTemplates')]",
+    "NetworkTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '01Networks.json')]",
+    "NicTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '03NICs.json')]",
+    "VMsTemplateUri": "[concat(variables('BaseTemplateUri'), '/', '04VirtualMachines.json')]",
+
+    "-----Networks Variables-----": "",
+    "VirtualNetworkName": "Windows-VNET",
+    "VirtualNetworkAddressRange": "10.0.0.0/16",
+
+    "SubnetNames": {
+      "WindowsSubnetName": "Windows-Subnet",
+      "JumpboxSubnetName": "Jumpbox-Subnet"
+    },
+    "SubnetIPAddresses": {
+      "WindowsSubnetIPAddress": "10.0.1.0/24",
+      "JumpboxSubnetIPAddress": "10.0.0.0/24"
+    },
+    "Subnets": [
+      {
+        "name": "[variables('SubnetNames').WindowsSubnetName]",
+        "properties": { "addressPrefix": "[variables('SubnetIPAddresses').WindowsSubnetIPAddress]" }
+      },
+      {
+        "name": "[variables('SubnetNames').JumpboxSubnetName]",
+        "properties": { "addressPrefix": "[variables('SubnetIPAddresses').JumpboxSubnetIPAddress]" }
+      }
+    ],
+
+    "VnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
+    "WindowsSubnetID": "[concat(variables('VnetID'),'/subnets/',variables('SubnetNames').WindowsSubnetName)]",
+    "JumpboxSubnetID": "[concat(variables('VnetID'),'/subnets/',variables('SubnetNames').JumpboxSubnetName)]",
+
+    "PublicIPAddressName": "Jumpbox-PIP",
+
+    "DiagnosticsStorageAccountName": "[concat('diag', uniqueString(resourceGroup().id))]",
+    "StorageAccountType": "Standard_LRS",
+
+    "-----VM Variables-----": "",
+    "VMNames": [
+      {
+        "Name": "2008-R2-SP1",
+        "Value": "2K8R2SP1"
+      },
+      {
+        "Name": "2008-R2-SP1-smalldisk",
+        "Value": "2K8R2SP1-sdisk"
+      },
+      {
+        "Name": "2012-Datacenter",
+        "Value": "2K12-Dc"
+      },
+      {
+        "Name": "2012-Datacenter-smalldisk ",
+        "Value": "2K12-Dc-sdisk"
+      },
+      {
+        "Name": "2012-R2-Datacenter",
+        "Value": "2K12R2-Dc"
+      },
+      {
+        "Name": "2012-R2-Datacenter-smalldisk ",
+        "Value": "2K12R2-Dc-sdisk"
+      },
+      {
+        "Name": "2016-Datacenter",
+        "Value": "2K16-Dc"
+      },
+      {
+        "Name": "2016-Datacenter-Server-Core",
+        "Value": "2K16-Dc-Sc"
+      },
+      {
+        "Name": "2016-Datacenter-Server-Core-smalldisk ",
+        "Value": "2K16-Dc-Scsdisk"
+      },
+      {
+        "Name": "2016-Datacenter-smalldisk",
+        "Value": "2K16-Dc-sdisk"
+      },
+      {
+        "Name": "2016-Datacenter-with-Containers",
+        "Value": "2K16-Dc-Ctainer"
+      },
+      {
+        "Name": "2016-Datacenter-with-RDSH",
+        "Value": "2K16-Dc-RDSH"
+      },
+      {
+        "Name": "2016-Nano-Server",
+        "Value": "2K16-Nano-Svr"
+      }
+    ],
+
+    "JumpboxVMSize": "Standard_D2_v2_Promo",
+    "JumboxVMName": "JumpboxVM",
+    "JumpboxImagePublisher": "MicrosoftWindowsServer",
+    "JumpboxImageOffer": "WindowsServer",
+    "JumpboxImageSKU": "2016-Datacenter",
+
+    "-----Windows VMs Variables-----": "",
+    "WindowsVMSize": "Standard_D2_v2_Promo",
+    "WindowsImagePublisher": "MicrosoftWindowsServer",
+    "WindowsImageOffer": "WindowsServer",
+    "WindowsImageSkus": [
+      {
+        "Name": "2008-R2-SP1",
+        "Offer": "2008-R2-SP1"
+      },
+      {
+        "Name": "2008-R2-SP1-smalldisk",
+        "Offer": "2008-R2-SP1-smalldisk"
+      },
+      {
+        "Name": "2012-Datacenter",
+        "Offer": "2012-Datacenter"
+      },
+      {
+        "Name": "2012-Datacenter-smalldisk",
+        "Offer": "2012-Datacenter-smalldisk"
+      },
+      {
+        "Name": "2012-R2-Datacenter",
+        "Offer": "2012-R2-Datacenter"
+      },
+      {
+        "Name": "2012-R2-Datacenter-smalldisk",
+        "Offer": "2012-R2-Datacenter-smalldisk"
+      },
+      {
+        "Name": "2016-Datacenter",
+        "Offer": "2016-Datacenter"
+      },
+      {
+        "Name": "2016-Datacenter-Server-Core",
+        "Offer": "2016-Datacenter-Server-Core"
+      },
+      {
+        "Name": "2016-Datacenter-Server-Core-smalldisk ",
+        "Offer": "2016-Datacenter-Server-Core-smalldisk "
+      },
+      {
+        "Name": "2016-Datacenter-smalldisk",
+        "Offer": "2016-Datacenter-smalldisk"
+      },
+      {
+        "Name": "2016-Datacenter-with-Containers",
+        "Offer": "2016-Datacenter-with-Containers"
+      },
+      {
+        "Name": "2016-Datacenter-with-RDSH",
+        "Offer": "2016-Datacenter-with-RDSH"
+      },
+      {
+        "Name": "2016-Nano-Server",
+        "Offer": "2016-Nano-Server"
+      }
+    ]
+  },
+  "resources": [
+    {
+      "name": "NetworkResources",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Create Virtual Network, Availability Sets, PIP",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('NetworkTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+
+          "VirtualNetworkName": { "value": "[variables('VirtualNetworkName')]" },
+          "VirtualNetworkAddressRange": { "value": "[variables('VirtualNetworkAddressRange')]" },
+
+          "Subnets": { "value": "[variables('Subnets')]" },
+
+          "DiagnosticsStorageAccountName": { "value": "[variables('DiagnosticsStorageAccountName')]" },
+          "StorageAccountType": { "value": "[variables('StorageAccountType')]" },
+
+          "PublicIPAddressName": { "value": "[variables('PublicIPAddressName')]" }
+
+        }
+      }
+    },
+    {
+      "name": "Nics",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Create Nics",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/NetworkResources"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('NicTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+
+          "VMNames": { "value": "[variables('VMNames')]" },
+          "JumpboxVMName": { "value": "[variables('JumboxVMName')]" },
+
+          "WindowsSubnetID": { "value": "[variables('WindowsSubnetID')]" },
+          "JumpboxSubnetID": { "value": "[variables('JumpboxSubnetID')]" },
+
+          "PublicIPAddressName": { "value": "[variables('PublicIPAddressName')]" }
+        }
+      }
+    },
+    {
+      "name": "VirtualMachines",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2017-08-01",
+      "comments": "Create VMs",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/Nics"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('VMsTemplateUri'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+
+          "JumpboxVMSize": { "value": "[variables('JumpboxVMSize')]" },
+          "JumpboxImagePublisher": { "value": "[variables('JumpboxImagePublisher')]" },
+          "JumpboxImageOffer": { "value": "[variables('JumpboxImageOffer')]" },
+          "JumpboxImageSKU": { "value": "[variables('JumpboxImageSKU')]" },
+
+          "WindowsVMSize": { "value": "[variables('WindowsVMSize')]" },
+          "WindowsImagePublisher": { "value": "[variables('WindowsImagePublisher')]" },
+          "WindowsImageOffer": { "value": "[variables('WindowsImageOffer')]" },
+          "WindowsImageSkus": { "value": "[variables('WindowsImageSkus')]" },
+
+          "AdminUsername": { "value": "[parameters('AdminUsername')]" },
+          "AdminPassword": { "value": "[parameters('AdminPassword')]" },
+
+          "JumpboxVMName": { "value": "[variables('JumboxVMName')]" },
+          "VMNames": { "value": "[variables('VMNames')]" },
+
+          "VirtualNetworkName": { "value": "[variables('VirtualNetworkName')]" },
+          "VirtualNetworkAddressRange": { "value": "[variables('VirtualNetworkAddressRange')]" },
+
+          "Subnets": { "value": "[variables('Subnets')]" },
+
+          "DiagnosticsStorageAccountName": { "value": "[variables('DiagnosticsStorageAccountName')]" }
+        }
+      }
+    }
+  ],
+  "outputs": {}
+}
